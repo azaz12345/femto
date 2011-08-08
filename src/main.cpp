@@ -61,13 +61,10 @@
 #include <fstream>
 #include "GenMultiUser.h"
 #include "MobileStation.h"
-
+#include "CSG.h"
 #include "Simulator.h"
-#include <vector>
-/**********analysis data *********/
-vector<double> MeanNumInList_v;
-vector<double> MissRate;
-vector<double> Outage;
+//#include "TrafficModel.h"
+
 
 /********* Simulation Setup *********/
 int   Sim_terminate = 3000;    // Condition to terminate simulate (in terms of total number of MS arrivals)
@@ -85,6 +82,7 @@ extern void  assign_system_parameters();
 //---------------------------------//
 int main()
 {
+
     //---------------simulation initialization---------------//
 
     double t_new_call=0.0;
@@ -96,7 +94,7 @@ int main()
     double temp_SINR1=0;
     double total_num=0;
     double confid_value = 0;
-    INT16  i, j, n =0;
+    INT16  i, j, n =0,z=0;
     long *Seed_sys;
     Seed_sys  = new long;
     *Seed_sys = 8888;
@@ -130,6 +128,7 @@ int main()
             Mslink.DL_sub_channel_sum[i][j] = new int[Sub_channel_num];
     }
 
+
     Mslink.DL_FS_sub_channel = new int*[NUM_SECTOR];
     for(i = 0; i < NUM_SECTOR; i++)
         Mslink.DL_FS_sub_channel[i] = new int[FS_Sub_channel_num];
@@ -145,12 +144,14 @@ int main()
         Generator of Path
         先假設模擬時間為3600秒
     ****************************/
-    //PathGenerator* PathGen = new PathGenerator(3600,0.5, &BSOxy_MAI);
-    //vector<XYAXIS> PathDataBase;
+    PathGenerator* PathGen = new PathGenerator(3600,0.5,&BSOxy_MAI);
+    CSG* _CSG = new CSG() ;
+    vector<WayPoint> PathDataBase;
+
 
     for (i=0; i<n; i++)
     {
- //       if(Femto_mode==1)
+        if(Femto_mode==1)
 //            Mslink.fs_position(Permutation);
         //generate femto APs randomly according to density and also
         //assign the channel for one MS
@@ -164,8 +165,8 @@ int main()
 
 		smu.Start();
 
-
-
+        printf("\n---------------段落-------------\n");
+        system("pause");
 /*
         LinkList USERLIST;
 
@@ -232,16 +233,15 @@ int main()
 
  //       }
 /***********************************************************************************/
-/*
-        while(SUM_ncall < Sim_terminate)
-        {
+        while(SUM_ncall < Sim_terminate)                                                //double SUM_ncall = 0.0;           number of new call arrival events
+        {                                                                               //int   Sim_terminate = 3000;       Condition to terminate simulate (in terms of total number of MS arrivals)
             for(j=0; j<19; j++)
                 channel_num[j]=Num_channel_DL_PUSC;
             // Generate one MS
             MS_use_femto_num = Mslink.insertLast(t_new_call,traffic_load,Femto_mode);
             // Check if the MS can be admitted
             Mslink.new_call_CAC(t_abs, Femto_mode, Permutation);
-            // Resource allocation and capacity measurement
+            // Resource allocation and capacity measurement //SINR and Capacity compute
             Mslink.process_event(t_abs,Femto_mode,Permutation);
             // This only removes one node at pFirst?
             Mslink.node_departure();
@@ -256,22 +256,12 @@ int main()
 
         temp_SINR1=temp_SINR;
         total_num=Eb_No_measure_counter;
-*/
     } // end for (n=0 ..9)
 
-	double totalMeanNumInList_v=0,totalMissRate=0,totalOutage=0;
-
-	printf("\nMeanNumInList_v\tOptimumTargetSelectionMissRate\tOutage\n");
-	for(int Run=0;Run<n;Run++){
-
-		printf("%f\t%f\t%f\n",MeanNumInList_v[Run],MissRate[Run],Outage[Run]);
-
-	}
 
 
     confid_value = confid(arry,n);	 //confidence interval
     //temp = (double)(temp_SINR /Eb_No_measure_counter);
-    /*
     std::ofstream  outfile;
     //outfile.open("STASTICS.txt",std::ios::app);
     outfile.open("STASTICS.txt");
@@ -286,7 +276,6 @@ int main()
     for(i=0; i<n; i++)
         outfile << arry[i]<<std::endl;
     Frecords(Femto_mode,Permutation);
-*/
-	system("pause");
+
     return 0;
 } // End of Main

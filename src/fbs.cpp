@@ -37,12 +37,15 @@
 #include "stdhead.h"
 #include "external_parameters.h"
 #include "fbs.h"
-#include "GenFingerprintBase.h"
 #include "LocationState.h"
+#include "SimulatorParameter.h"
+#include "Record.h"
 
 //=================Global Parameters===============
 BLOCK_RECORD BLOCK[120];
 FS_INFO fsdata[FS_NUM];
+
+Record fbsposition("fbsposition");
 
 
 //=================End Global Paramters============
@@ -53,7 +56,7 @@ FS_INFO fsdata[FS_NUM];
 
 void FBS::fs_position(int Permutation)
 {
-    int i,j,k=0;
+    int i,j,k=0,index =0;
     double angle  = 0;
     int fs_num =0;
     XYAXIS fs_position;
@@ -65,19 +68,22 @@ void FBS::fs_position(int Permutation)
     int x_index =0;
     int y_index =0;
     int block_length=12;
+    int fs_OSG_Num ;
     int temp=0;
+    int CSG_GROUP ;
     double temp_distance =0;
     double temp_distance1 =0;
-	LinkList mbs; //use for FP
+    LinkList mbs;
 
 
-	printf("ZZZZZZZZZZZZZZZZZZ\n");
+
+
     for(i=0; i<NUM_SECTOR; i++)
     {
         for(k=0; k<FS_Sub_channel_num; k++)
             DL_FS_sub_channel[i][k] =0;
     }
-	printf("QQQQQQQQQQQQQQQ\n");
+
     for(i=0; i<120; i++) // Consider 120 BLOCKs
     {
         BLOCK[i].FS_num_length = 0;
@@ -86,9 +92,9 @@ void FBS::fs_position(int Permutation)
             BLOCK[i].FS_num[j] =0;
         }
     }
-	printf("HHHHHHHHHHHHHHHHH\n");
-    //std::ofstream outfile;
-    //outfile.open("fs_position.xls",std::ios::app);
+
+    std::ofstream outfile;
+    outfile.open("fs_position.xls",std::ios::out);
 
     angle = 0;
 
@@ -124,50 +130,34 @@ void FBS::fs_position(int Permutation)
                     fsdata[fs_num].ms_num = 0;
                     fsdata[fs_num].sub_channel_index[0]= -1; //tch add on 2010/2/11
                     fsdata[fs_num].block_num = block_num;
-//-------------------------------------------------by azaz12345
                     fsdata[fs_num].UserInfo.TotalNumUser = 10;
                     fsdata[fs_num].UserInfo.CurrNumUser = 0;
                     //femtocell根據所處的sector去選擇所要的band   ex:(1,3,3)為例如果sector為1那將會隨機選擇0 or 2
                     fsdata[fs_num].RadioBand = ( FS_sector_mapping(fs_num) + (((int)(Rand()*10))%2+1) ) % 3;
                     fsdata[fs_num].DataChannel = {0,0,0,0,0,0,0,0,0,0};
-
-					//建立Level Fingerprint
-					double RSSIs[NUM_CELL] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-					for(int CellID=0; CellID<NUM_CELL; CellID++){
+                    //建立Fingerprint
+				 	double RSSIs[NUM_CELL] = {0};
+					for(int CellID=0; CellID<=NUM_CELL; CellID++){
 						double PathLoss_ = mbs.pathloss( 3, BSOxy_MAI[CellID], fsdata[fs_num].position);
 						POLAXIS position_polar =FSNODE.cart2pol(BSOxy_MAI[CellID], fsdata[fs_num].position);
 						double Max_DL_power_ = 46.532;
 						double Back_off_ = Back_off;
 						double Max_DL_EIRP_;        //所有marco都是一樣
 						double AntennaGain_ = -20;  //初始化為-20
-						Max_DL_EIRP_ = Max_DL_power_ - Back_off_;
+						Max_DL_EIRP_ = Max_DL_power_ + Back_off_;
 
 						for(int SectorID=0; SectorID<NUM_SECTOR; SectorID++){
 							if(AntennaGain_< mbs.antenna_pattern(SECTOR_Steer_dir[SectorID],position_polar.th))
 								AntennaGain_ = mbs.antenna_pattern(SECTOR_Steer_dir[SectorID],position_polar.th);
 						}
 
-						RSSIs[CellID] = Max_DL_EIRP_ + AntennaGain_ - PathLoss_ ;//- 10*log10((float)All_carriers);
+						RSSIs[CellID] = Max_DL_EIRP_ + AntennaGain_ - PathLoss_ - 10*log10((float)All_carriers);
 
 					}
-					GenLevelFP<FP_LEVEL > GenLvFp_(-60.0, -100.0);
-					fsdata[fs_num].LevelFingerprint = GenLvFp_.buildFP(RSSIs);
 
-/*
-					printf("0:%f\t1:%f\t2:%f\t3:%f\t4:%f\t5:%f\t6:%f\t7:%f\n",RSSIs[0],RSSIs[1],RSSIs[2],RSSIs[3],RSSIs[4],RSSIs[5],RSSIs[6],RSSIs[7]);
-					for(int i=0;i<4;i++){
-						printf("Level%d:",i);
-						for(vector<int >::iterator it=fsdata[fs_num].LevelFingerprint.Level[i].begin();
-							it!=fsdata[fs_num].LevelFingerprint.Level[i].end();
-							it++)
-						{
-							printf("%d\t",(*it));
-						}
-						printf("\n--------------------------------------------\n");
-					}
-					system("PAUSE");
-*/
-//-------------------------------------------------by azaz12345
+
+					GenLevelFP<FP_LEVEL > GenFp_(-80.0, -95.0);
+					fsdata[fs_num].LevelFingerprint = GenFp_.buildFP(RSSIs);
 
                     if(temp_pol.r <= R * sin(PI/3) / sin((2 * PI / 3)-angle))
                     {
@@ -199,30 +189,15 @@ void FBS::fs_position(int Permutation)
                         fsdata[fs_num].FS_DL_EIRP = Max_FS_DL_power - Back_off;
                         fsdata[fs_num].FS_MAX_DL_power = Max_FS_DL_power - Back_off + Back_off;
                     }
-
-//----------------------------------------------------------------------------------------------------by azaz12345
-					//建立Vector Fingerprint
+                    //建立Vector Fingerprint
 					GenVectorFP GenVtFP_(fsdata[fs_num].marco_index);
-					fsdata[fs_num].VectorFingerprint = GenVtFP_.buildFP(RSSIs);//RSSIs 在上面
-
+					fsdata[fs_num].VectorFingerprint = GenVtFP_.buildFP(RSSIs);
 /*
-					for(int i=0;i<7;i++){
-
-						printf("Cell %d:%f\n",fsdata[fs_num].VectorFingerprint.Elements[i].CellID, fsdata[fs_num].VectorFingerprint.Elements[i].ElementValue);
-
-					}
-					LocationState L;
+                    LocationState L;
 					printf("\n");
 					printf("%s\n", L.IsOnStreet(fsdata[fs_num].position) ? "street":"house");
-					if(fsdata[fs_num].VectorFingerprint.Elements[0].ElementValue==-100)
-					system("pause");
+   		     		system("pause");
 */
-
-
-//----------------------------------------------------------------------------------------------------by azaz12345
-
-
-
                     fs_num ++;
                 }//end of if
             }
@@ -230,6 +205,35 @@ void FBS::fs_position(int Permutation)
         }
         block_num ++;
     }
+
+    fs_OSG_Num = (int)(fs_OSG_Percent * fs_num) ;
+    srand(time(NULL));
+
+    for ( int ind = 0; ind < fs_num ; ind++ )
+    {
+        fsdata[ind].Power_State = true;
+        double y = Rand();
+        if ( y <= fs_OSG_Percent && index <= fs_OSG_Num)
+        {
+            fsdata[ind].fs_mode = 1 ; // OSG
+            fsdata[ind].CSG_GROUP = 0 ;
+            index ++ ;
+        }
+        else
+        {
+            CSG_GROUP = rand()% 99 + 1 ;
+            fsdata[ind].fs_mode = 0 ; // CSG
+            fsdata[ind].CSG_GROUP = CSG_GROUP ;
+        }
+
+        fbsposition.Scatter( fsdata[ind].position.x , fsdata[ind].position.y , fsdata[ind].CSG_GROUP );
+    }
+
+        fbsposition.OutputScatter() ;
+
+
+
+
 
     FS_INFO temp1;
 
@@ -247,7 +251,8 @@ void FBS::fs_position(int Permutation)
     {
         fsdata[k].serial =k;
         fs_allocation(k,Permutation);
-        //outfile<<fsdata[k].serial<<"\t"<<fsdata[k].marco_index <<"\t"<<fsdata[k].sector_index<<"\t"<<fsdata[k].block_num <<"\t"<<fsdata[k].first_sector_index<<"\t"<<fsdata[k].sub_channel_index[0]<<"\t"<<fsdata[k].position.x<<"\t"<<fsdata[k].position.y <<std::endl;
+//        outfile<<fsdata[k].serial<<"\t"<<fsdata[k].marco_index <<"\t"<<fsdata[k].sector_index<<"\t"<<fsdata[k].block_num <<"\t"<<fsdata[k].first_sector_index<<"\t"<<fsdata[k].sub_channel_index[0]<<"\t"<<fsdata[k].position.x<<"\t"<<fsdata[k].position.y <<std::endl;
+//        outfile<<fsdata[k].serial<<"\t"<<fsdata[k].position.x<<"\t"<<fsdata[k].position.x
     }
 
 }
@@ -365,7 +370,7 @@ void FBS::fs_allocation(int fs_num, int Permutation)
             threshold -= 0.01;
     } // end of while (threshold > 0 )
 
-    delete [] a;
+    delete a;
 //	} //end of (temp2==temp3)
     DL_FS_sub_channel[fsdata[fs_num].sector_index][channel]=1;
     fsdata[fs_num].sub_channel_index[fsdata[fs_num].ms_num] = channel;

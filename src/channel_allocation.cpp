@@ -49,6 +49,7 @@ extern XYAXIS BSOxy_MAI[NUM_CELL];
 extern INT16 adjcent[NUM_CELL][NUM_CELL];
 int MS_FS_id =0; //serving FS id for the MS (pCurr->msdata.sFS)
 
+/******************************assign_system_parameters***************************************/
 void assign_system_parameters()
 {
 
@@ -58,7 +59,7 @@ void assign_system_parameters()
     Max_DL_power       = 46.532;	  //(dBm)Max. downlink transmit power at BS (45 Watts)
     Max_UL_power       = 23;             //(dBm)Max. uplink transmit power at MS (0.25 Watts)
 
-    Max_DL_EIRP        = Max_DL_power-Back_off;//(dBm)equivalent isotropic radiated power (EIRP) of BS
+    Max_DL_EIRP        = Max_DL_power-Back_off;//(dBm)equivalent isotropic radiated power (EIRP) of BS  // Back_off = 5db
     Max_UL_EIRP        = Max_UL_power-Back_off;
 
     f_carrier          = 2500;           //(MHz)carrier frequency
@@ -95,10 +96,10 @@ void assign_system_parameters()
     Eb_No_measure_counter=0;
     MCS=0;
 }
-
+/*************************************process_event*****************************************************/
 void LinkList::process_event(double current_time, int Femto_mode,int Permutation)
 {
-    SINR(Femto_mode,Permutation);
+//    SINR(Femto_mode,Permutation);
     capacity_measurement(Permutation,Femto_mode);
 }
 
@@ -120,6 +121,7 @@ void LinkList::new_call_CAC(double current_time, int Femto_mode,int Permutation)
     double  temp1=0;
     double  temp2=0;
 
+//------------------inital----------------------//
 
     for(i=0; i<NUM_SECTOR; i++)
         sub_channel_sum[i]=0;
@@ -134,7 +136,7 @@ void LinkList::new_call_CAC(double current_time, int Femto_mode,int Permutation)
             if(pCurr->msdata.femto_mode==1) // connected to femto
             {
                 total_FS_channel_sum++;
-                FS_sub_channel_sum[pCurr->msdata.sFS]+=Num_SCH_per_MS_DL;
+                FS_sub_channel_sum[pCurr->msdata.sFS]+=Num_SCH_per_MS_DL;  //Max. number of DL sub-channel can be allocated for each MS = 1
             }
             else // connected macro
                 sub_channel_sum[pCurr->msdata.ssector]+=Num_SCH_per_MS_DL;
@@ -149,6 +151,8 @@ void LinkList::new_call_CAC(double current_time, int Femto_mode,int Permutation)
     else
         Num_sub_channel=Num_channel_DL_FUSC;
 
+//--------------------------------------------------------------------------------------
+//還有沒有SUBCHANNEL可以使用(Macro)
     if(pLast->msdata.femto_mode==0) // pLast (is the new MS) connected to macro
     {
         if(Num_SCH_per_MS_DL < (Num_sub_channel-sub_channel_sum[pLast->msdata.ssector]) )
@@ -164,6 +168,8 @@ void LinkList::new_call_CAC(double current_time, int Femto_mode,int Permutation)
             CAC_decision = false;//block
     }
 
+//----------------------------------------------------------------------------------------
+
     SUM_ncall += 1.0; //new call arrivals
 
     if(length==1)//prevent linklist empty
@@ -172,11 +178,11 @@ void LinkList::new_call_CAC(double current_time, int Femto_mode,int Permutation)
     }
     if ( CAC_decision == true )//admission of new call arrival
     {
-        Serial_seed+=1;
+        Serial_seed+=1;  // ID of each simulated MS
         pLast->msdata.serial=Serial_seed;
-        pCurr->msdata.MCS_DL=1;
-        pLast->msdata.con_type=RT;
-        pLast->msdata.speed=Max_speed;
+        pCurr->msdata.MCS_DL=1;  //Modulation and Coding Scheme (MCS) for downlink
+        pLast->msdata.con_type=RT; //是否on call
+        pLast->msdata.speed=Max_speed; // speed
         pLast->msdata.direction=PI*0.5*floor(4*Rand());// MS turn in rectangular way
 
         pCurr=pFirst;
@@ -195,10 +201,12 @@ void LinkList::new_call_CAC(double current_time, int Femto_mode,int Permutation)
         SUM_block += 1.0;
     }
 }
-
+//--------------------------------------------------------------------------------//
 void LinkList::DL_sub_channel_initial()
 {
     INT16   i,j,k;
+
+
     for(i=0; i<NUM_CELL; i++)
     {
         for(j=0; j<NUM_SECTOR; j++)
@@ -237,9 +245,11 @@ void LinkList::LIF_assign_channel(int Femto_mode,int Permutation,MSNODE* pCurr)
         int found=0;
         int* a = NULL;
         if(Permutation ==0) //PUSC
-            a = new int[(int) (Num_channel_DL_PUSC/Num_SCH_per_MS_DL)];
+            a = new int[(int) (Num_channel_DL_PUSC/Num_SCH_per_MS_DL)];//30/1
         else  //FUSC
-            a = new int[Num_channel_DL_FUSC];
+            a = new int[Num_channel_DL_FUSC];//32
+
+
         while(threshold1 != 0)
         {
             for(k = 0; k < Num_channel_DL_PUSC/Num_SCH_per_MS_DL; k++)
@@ -298,7 +308,7 @@ void LinkList::LIF_assign_channel(int Femto_mode,int Permutation,MSNODE* pCurr)
             else
                 threshold1 -= 0.01;
         }
-        delete [] a;
+        delete a;
 
         DL_FS_sub_channel[fsdata[MS_FS_id].sector_index][temp_sub_channel] =1;
         fsdata[MS_FS_id].sub_channel_index[fsdata[MS_FS_id].ms_num] = temp_sub_channel;
@@ -560,8 +570,6 @@ void LinkList::sys_setup()
     *seed_cell        =(long int)  Rand()+1;
     seed_position_x  = 376810349;
     seed_position_y   = 1847817841;
-
-
 
 } //end of sys_setup
 /*----------------------------------*/

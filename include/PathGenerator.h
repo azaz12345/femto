@@ -13,6 +13,8 @@
 #define LittleStraight 1.0
 
 #define InHome 0.1
+#define CSGInHome 0.9
+
 
 #define S_H_P 0.34 //Stay_Home_Percent
 
@@ -34,7 +36,8 @@ public:
     virtual ~PathGenerator();
     //將根據模擬的時間利用起始點來產生一條路徑
     //speed:節點的移動速度(m/s)
-    void CreateNewPath(vector<WayPoint>* path, XYAXIS FirstPosition, int speed);
+//    void CreateNewPath(vector<WayPoint>* path, XYAXIS FirstPosition, int speed);
+    void CreateNewPath(vector<WayPoint>* path, MSNODE* MS, int speed);
     bool Probability( double Prob ) ;
     int _CornerDistance ( int CheckCoordinate , int _MsDirection ,int *Cor , int &BigCorner , int &LittleCorner , double &HomeCorner) ;
     void CornerCheck ( int MsCorn , int _MsDirection_,int &BigCorner , int &LittleCorner , double &HomeCorner) ;
@@ -58,8 +61,8 @@ protected:
 
 private:
 
-    const double SimulationTime;
-    const double TickTime;
+    double SimulationTime;
+    double TickTime;
     XYAXIS (*BSOxy_)[NUM_CELL];
 };
 

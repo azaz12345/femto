@@ -40,7 +40,7 @@ bool LocationState::IsOnStreet(XYAXIS Position){
 
     if( DecidePosition(Position)==0 ||
         DecidePosition(Position)==1 ||
-		DecidePosition(Position)==2){
+        DecidePosition(Position)==2){
 
         return true;//street
     }
@@ -59,14 +59,12 @@ int LocationState::DecidePosition(XYAXIS Position)
 //    printf("DecideX:%dDecideY:%d\n",DecideX,DecideY);
     if( DecideXY < 4 )
         MsState = Crossroads;
-    else if ( (DecideXY >= 4) &&(DecideY <= 1) )
+    else if ( (DecideX == 4) &&(DecideY <= 1) )
         MsState = Level_Street;
-    else if ( (DecideXY >= 4) &&(DecideX <= 1) )
+    else if ( (DecideY == 4) &&(DecideX <= 1) )
         MsState = Vertical_Street;
-
     else if ( DecideXY == 8)
         MsState = Home ;
-
 
     return MsState;
 
@@ -75,9 +73,39 @@ int LocationState::DecidePosition(XYAXIS Position)
 /*
     Big Street:     0
     Little Street:  1
-    House:          4
+    House:          3
 
 */
+
+int LocationState::ComputePosition(float Coordinate)
+{
+
+    int ComputeCoordinate = (( int )Coordinate )%230;
+
+    if ( ComputeCoordinate < 0 )
+    {
+        ComputeCoordinate += 230 ;
+    }
+
+    if( ComputeCoordinate >= 100 && ComputeCoordinate <=130 )
+    {
+        MsStateXY = Big_Street;
+    }
+    else
+    {
+        if(ComputeCoordinate>130) ComputeCoordinate-=30;
+        if ( (ComputeCoordinate %20 <3 ) ||  (ComputeCoordinate %20 >17 ) )
+            MsStateXY = Little_Street;
+
+        else
+            MsStateXY = House;
+
+    }
+
+    return MsStateXY;
+
+}
+/*
 int LocationState::ComputePosition(float Coordinate)
 {
 
@@ -109,7 +137,7 @@ int LocationState::ComputePosition(float Coordinate)
     return MsStateXY;
 
 }
-
+*/
 inline int LocationState::HouseOrLittleStreet(int num)
 {
     if( num >=130)

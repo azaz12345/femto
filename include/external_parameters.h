@@ -34,12 +34,9 @@
  *	@(#)external_parameters.h	11/02/2010
  */
 
-
 #include "stdhead.h"
-#include "GenFingerprintBase.h"
 
 /////--------Global variable----------/////
-extern VectorFP BSVectorFP[NUM_CELL];
 extern XYAXIS BSOxy[NUM_CELL];
 extern BLOCK_RECORD BLOCK[120];
 extern FS_INFO fsdata[FS_NUM];
@@ -50,6 +47,7 @@ extern double  SUM_dropping;
 extern double Proc_gain_DL_FUSC;            //processing gain
 extern double f_carrier;
 extern int MS_FS_id; //serving FS id for the MS (pCurr->msdata.sFS)
+extern VectorFP BSVectorFP[NUM_CELL];
 
 
 extern double symbol_duration;
@@ -96,4 +94,3 @@ extern double temp_SINR;   // Sum of SINR of all MS
 extern double temp_SINR_BS;
 extern double temp_SINR_FS;
 extern long seed_sub_channel;
-

@@ -7,18 +7,10 @@
 //#define FULL_SCAN_
 
 
-#define FP_LEVEL 2
-#define VFP_LENGTH 30
+#define FP_LEVEL 12
+#define VFP_LENGTH 20
 
-#define VFP_SHIFT_ENABLE 0
-#define SHIFT_VALUE 5
-
-
-
-#define CELL_RADIOUS 0.6	//km
-#define HOUSE_DENSITY 	0.1	//0.0~1.0
-
-
+#define fs_OSG_Percent 1.0
 
 
 #endif // SIMULATORPARAMETER_H_INCLUDED

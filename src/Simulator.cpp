@@ -2,82 +2,69 @@
 
 #include "external_parameters.h"
 #include <stdlib.h>
-#include <omp.h>
-#include <stdio.h>
 #include "SimulatorParameter.h"
-
-/***analysis***/
+#include "TrafficModel.h"
+#include "DataChannelAssignmentDL.h"
+#include "EventQueue.h"
 #include "Record.h"
-/************/
 
-unsigned int femtoNum=0;
-unsigned int macroNum=0;
-unsigned int outNum = 0;
-
-unsigned int totalfemtoNum=0;
-unsigned int totalmacroNum=0;
-
-double ListMissRateTotal=0;
-double outage 		= 0;
-double MeanNumInList=0;
+double outage =0.0;
+double MeanNumInList=0.0;
 long int countList = 0;
-double angleMSE = 0;
-double OptimumTargetmissCount = 0;
-unsigned  int macroUserNum_a = 0;
-unsigned  int femtoUserNum_a =0;
-double speedDetectionErrorTotal = 0;
-double speedDetectionTotalCount = 0;
-double speedTotal = 0;
-double speedCount = 0;
-double NumOutdoorUser=0;
-double TotalInOutdoorUser=0;
-Record ReSpeed("SPEED");
-Record ReSpeedDeteError("SPEED_DETECTION_ERROR");
-Record ReEstAngle("EST_ANGLE");
-Record ReRealAngle("REAL_ANGLE");
-Record ReHandoverTimes("Handover_Times");
-Record ReListLength("List_length");
-Record ReMissRate("MissRate");
-Record ReAlpha("Alpha");
-//Record ReListMeanDistanceBtwUserFetmo("DistanceBtwUser_Femto");
+double angleMSE = 0.0;
+double missCount = 0.0 ;
+int ToLowSinr = 0;
+int LowSinr = 0;
+int MacroLowSinr = 0;
+int FemtoLowSinr = 0;
+int MacroNum  = 0;
+int FemtoNum  = 0;
+int femtoNum_=0;
+int macroNum_=0;
+
+Record ReMacroSINR("Macro_SINR");
+Record ReFemtoSINR("Femto_SINR");
+Record ReALLSINR("ALL_SINR");
 
 
-/*GenMultiUserParam(int SimuTotalTime,int NumUser,double TickTime,double ScanPeriod,int P)*/
 
-Simulator::Simulator():USERLIST(),P1(3600,300,0.5,2.0,0),MultiUser( &USERLIST, P1)
+EventQueue EvQue_;
+long Seed;
+//Record TaMacroSINR("Ta_Macro_SINR");
+//Record TaFemtoSINR("Ta_Femto_SINR");
+//Record TaALLSINR("Ta_ALL_SINR");
+
+
+
+Simulator::Simulator()
 {
 	/*initialization*/
 
-/*
-	P1.numuser = 100;
+	P1.numuser = 2000;
 	P1.permutation = 0;
 	P1.simulationtotaltime = 3600;
 	P1.ticktime = 0.5;
 	P1.scanperiod = 2.0;
+
+//	MultiUser = new GenMultiUser( &USERLIST, P1);
+//    VQ = new vector<MSNODE*>;
+
+//    vector<WayPoint>* UserPathList_ = MultiUser->getUserPathlist();
+
+
+/*
+   _CSG = new CSG();
+    for ( int MS = 0; MS < P1.numuser ; MS++)
+    {
+        _CSG->NeighborFemto( &UserPathList_[MS] );
+        _CSG->NeighborCSG_OSG();
+    }
 */
-
-	outage 		= 0;
-	MeanNumInList=0;
-	countList = 0;
-	angleMSE = 0;
-	OptimumTargetmissCount = 0;
-	macroUserNum_a = 0;
-	femtoUserNum_a =0;
-
-
-	printf("5555555555555\n");
-	//MultiUser = new GenMultiUser( &USERLIST, P1);
-	printf("6666666666666666\n");
-	vector<WayPoint>* UserPathList_ = MultiUser.getUserPathlist();
-	printf("4444444444444\n");
-
     //ctor
 }
 
 Simulator::~Simulator()
 {
-	printf("3333333333333\n");
-	//delete MultiUser;
     //dtor
 }
 
@@ -86,141 +73,137 @@ void
 Simulator::Start()
 {
 
-	for(int i=0; i<=(int)(P1.simulationtotaltime/P1.ticktime); i++){
-		//system("PAUSE");
-		//_sleep(1000);
+    int numbertest = 0;
+    double SimulationTime = 0;
+    energy save ;
+    DataChannelAssignmentDL DCA( &BSOxy_MAI , &fsdata);
+    LinkListEvPrcs LkEvPrcs(&USERLIST);
+
+    //insert node event
+    while( SimulationTime < P1.simulationtotaltime )
+    {
+        Event event;
+        double tmptime = ExpRand(2,&Seed);//exponetial
+
+        SimulationTime=SimulationTime+tmptime;
+
+        event.EventType_= INSER_NODE;
+        event.time_     = SimulationTime;
+        event.node_     = 0;
+        event.EvProc_   = &LkEvPrcs;
+
+        EvQue_.pushEvent(event);
+    }
+
+    EvQue_.Process();
+    system("pause");
+    /*
+    for(multiset< Event ,sortByTime>::iterator it=EvQue_.EvQueue.begin();it!=EvQue_.EvQueue.end();it++){
+        printf("%f\n",it->time_);
+        system("pause");
+
+    }
+    */
+
+
+
+	for(int i=0; i<=P1.simulationtotaltime/P1.ticktime; i++){
+
 		system("cls");
-		printf("Time:%f\n",i*(P1.ticktime));
+		printf("®É¶¡:%f\n",i*(P1.ticktime));
 
 
-		MultiUser.UpdateAllPosition(USERLIST.pFirst,0);
 
-		MSNODE** arrayMSNODE = new MSNODE*[P1.numuser];
+
+
+
+//		MultiUser->UpdateAllPosition(USERLIST.pFirst,0);
+
+//		MSNODE** arrayMSNODE = new MSNODE*[P1.numuser];
 		MSNODE* currMS = USERLIST.pFirst;
 
+        FemtoListByFP_v = new vector<vector<int>* >;
+
+//        TrafficModel T_M(i*(P1.ticktime),P1.simulationtotaltime, P1.ticktime ,P1.permutation ,&USERLIST ,VQ);
+/*
 		for( int j=0; currMS != NULL; j++){
 			arrayMSNODE[j] = currMS;
 			currMS = currMS->pNext;
 		}
 
-		femtoNum=0;
-		macroNum=0;
-		outNum = 0;
-
-
-
-		//#pragma omp parallel for
+        T_M.inital( arrayMSNODE ,P1.numuser );    // inital all user aren't on call
+*/
 		for(int j=0; j<P1.numuser; j++){
-			//printf("User%d:\n",j);
-#ifdef LEVEL_FP_
-			MSwithLevelFP  MS( &USERLIST, &BSOxy_MAI, &fsdata, P1.permutation);
-#endif
-#ifdef VECTOR_FP_
-			MSwithVectorFP  MS( &USERLIST, &BSOxy_MAI, &fsdata, P1.permutation);
-#endif
-#ifdef FULL_SCAN_
-			MobileStationBase MS( &USERLIST, &BSOxy_MAI, &fsdata, P1.permutation);
-#endif
-			MS.UpdateMSINFO(arrayMSNODE[j], i, P1.ticktime);
 
+//		   if( T_M.CheckMS(j)==false) {continue;}
+
+#ifdef LEVEL_FP_
+			MSwithLevelFP  MS( &USERLIST, &BSOxy_MAI, &fsdata, P1.permutation,_CSG);
+#endif
+
+#ifdef VECTOR_FP_
+			MSwithVectorFP  MS( &USERLIST, &BSOxy_MAI, &fsdata, P1.permutation,_CSG);
+#endif
+
+#ifdef FULL_SCAN_
+			MobileStationBase MS( &USERLIST, &BSOxy_MAI, &fsdata, P1.permutation,_CSG);
+#endif
+
+//            T_M.TrafficList( j );
+            numbertest ++ ;
+
+//          DCA.RunCompute( arrayMSNODE[j] , P1.permutation );
+//			MS.UpdateMSINFO(arrayMSNODE[j], i*(P1.ticktime), P1.ticktime);
+
+//			FemtoListByFP_v->push_back(MS.GetFemtoListByFPrf());
+
+//			T_M.DataSINR();
 			//delete  MS[i];
-
-			//if(i==(P1.simulationtotaltime-0.5)){printf("position(%f,%f)\n", arrayMSNODE[j]->msdata.position.x   , arrayMSNODE[j]->msdata.position.y);}
-
-
-
-
 		}
-		printf("Macro:%d\tFemto:%d\tBlocking:%d\n",macroNum,femtoNum,outNum);
-		totalfemtoNum+=femtoNum;
-		totalmacroNum+=macroNum;
-		delete [] arrayMSNODE;
+/************************************Power Saving************************************************/
+		for(int j = 0 ; j<FS_NUM_INDEX;j++)
+            save.NoUserFemto(j,P1.ticktime, &USERLIST, P1.permutation,_CSG , FemtoListByFP_v);
+
+//		delete [] arrayMSNODE;
+
+		for(vector<vector<int>* >::iterator it = FemtoListByFP_v->begin(); it != FemtoListByFP_v->end(); it++){delete *it;}
+
+		delete FemtoListByFP_v;
 
 	}
 
-	//system("cls");
+    save.TotalEnergy();
+
+    double total=(double)(P1.numuser*(P1.simulationtotaltime/P1.ticktime));
+
+ //   printf("\nFemtoRatio%f\nMacroRatio%f",(double)femtoNum_/total ,(double) macroNum_/total);
+ //   printf("\nOutage%f",outage/(( P1.simulationtotaltime/ P1.ticktime)*P1.numuser));
+    printf("\nFemtoRatio%f\nMacroRatio%f",(double)femtoNum_/numbertest ,(double) macroNum_/numbertest);
+    printf("\nOutage%f",outage/numbertest);
+
+    ReMacroSINR.OutputPDF();
+    ReMacroSINR.OutputCDF();
+//    TaMacroSINR.OutputPDF();
+//    TaMacroSINR.OutputCDF();
+
+    ReFemtoSINR.OutputPDF();
+    ReFemtoSINR.OutputCDF();
+//    TaFemtoSINR.OutputPDF();
+//    TaFemtoSINR.OutputCDF();
+
+    ReALLSINR.OutputPDF();
+    ReALLSINR.OutputCDF();
+//    TaALLSINR.OutputPDF();
+//    TaALLSINR.OutputCDF();
 
 
-	extern vector<double> MeanNumInList_v;
-	extern vector<double> MissRate;
-	extern vector<double> Outage;
-	double total=(double)(P1.numuser*(P1.simulationtotaltime/P1.ticktime));
-
-	printf("femtoNum:%f\tmacroNum:%f\n",totalfemtoNum/total,totalmacroNum/total);
-	printf("Blocking Rate:%f %\n",outage/total);
-	Outage.push_back(  outage/(double)(P1.numuser*(P1.simulationtotaltime/P1.ticktime))  );
-	printf("OptimumTargetSelectionMissRate:%f\n",OptimumTargetmissCount/countList);
-	MissRate.push_back(OptimumTargetmissCount/countList);
-	printf("MeanNumInList: %f\n",MeanNumInList/countList);
-	MeanNumInList_v.push_back(MeanNumInList/countList);
-	printf("ListMissRate:%f\n",(ListMissRateTotal/countList));
-	printf("MobilityStateDetectionErrorRate:%f\t%f\n",(speedDetectionErrorTotal/speedDetectionTotalCount), ReSpeedDeteError.Average());
-	printf("##Difference## Mean :%f m/s\tVariance:%f\n", ReSpeed.Average(), ReSpeed.Variance());
-	printf("Handover Times:%f",ReHandoverTimes.Total());
 
 
-    std::ofstream result_file;
-    char tmp[30];
-    std::string filename("Sim_Result_");
-    sprintf(tmp,"R=%.1f_",CELL_RADIOUS);
-    filename+=tmp;
-    sprintf(tmp,"D=%.1f_",HOUSE_DENSITY);
-    filename+=tmp;
-#ifdef FULL_SCAN_
-	filename+="FullScan";
-#endif
-#ifdef VECTOR_FP_
-	sprintf(tmp,"%d_",VFP_LENGTH);
-	filename+="VectorFP";
-	filename+=tmp;
-	filename+="_";
-	if(VFP_SHIFT_ENABLE==1)
-	{
-
-		filename+="shift";
-		sprintf(tmp,"%d_",SHIFT_VALUE);
-		filename+=tmp;
-	}
-	else
-	{
-		filename+="noshift";
-	}
 
 
-#endif
-#ifdef LEVEL_FP_
-	sprintf(tmp,"%d_",FP_LEVEL);
-	filename+="LevelFP";
-	filename+=tmp;
-#endif
-    filename+=".txt";
-    result_file.open( filename.c_str(), std::ios::out);
-    result_file<<"femtoNum:"<<totalfemtoNum/total<<"macroNum:"<<totalmacroNum/total<<std::endl<<std::endl;
-    result_file<<"Blocking Rate:"<<outage/total<<std::endl<<std::endl;
-	result_file<<"OptimumTargetSelectionMissRate:"<<OptimumTargetmissCount/countList<<std::endl<<std::endl;
-	result_file<<"MeanNumInList:"<<MeanNumInList/countList<<"\t"<<ReListLength.Average()<<std::endl<<std::endl;
-	result_file<<"ListMissRate:"<<ListMissRateTotal/countList<<"\t"<<ReMissRate.Average()<<std::endl<<std::endl;
-	result_file<<"##MobilityStateDetectionErrorRate:"<<ReSpeedDeteError.Average()<<std::endl<<std::endl;
-	result_file<<"##Difference## Mean :"<<ReSpeed.Average()<<"\t"<<"Variance:"<<ReSpeed.Variance()<<std::endl<<std::endl;
-    result_file<<"Handover Times:"<<ReHandoverTimes.Total()<<std::endl;
-    result_file<<"mean Alpha:"<<ReAlpha.Average()<<std::endl;
-    result_file<<"Outdoor Ratio:"<<NumOutdoorUser/TotalInOutdoorUser<<std::endl;
-    //result_file<<"mean distance btw Femto & User:"<<ReListMeanDistanceBtwUserFetmo.Average()<<std::endl;
-    result_file.close();
-
-	ReSpeed.OutputPDF();
-	ReSpeed.OutputCDF();
-	ReEstAngle.OutputPDF();
-	ReRealAngle.OutputPDF();
-	ReListLength.OutputCDF();
-	ReListLength.OutputPDF();
-	ReMissRate.OutputCDF();
-	ReMissRate.OutputPDF();
-	ReAlpha.OutputPDF();
-	ReAlpha.OutputCDF();
-
-	//ReListMeanDistanceBtwUserFetmo.OutputPDF();
-
-
+//    printf("\nOutage%f",outage);
 
 }
+
+
+

@@ -57,7 +57,7 @@ double  I_distribute_DL=0;//received interference power (FS)
 double  temp_I=0;
 double  I_charge_DL=0; //received interference power (BS)
 
-
+/*
 void LinkList::SINR(int Femto_mode,int Permutation)
 {
     MSNODE* pCurr=pFirst;
@@ -73,8 +73,8 @@ void LinkList::SINR(int Femto_mode,int Permutation)
         I_charge_DL=0;
         I_distribute_DL=0;
 
-        DL_signal_calculation(Femto_mode,Permutation,pCurr);
-        interfer_calculation(Femto_mode,Permutation,pCurr);
+        DL_signal_calculation(Femto_mode , Permutation,pCurr);
+        interfer_calculation(Femto_mode , Permutation,pCurr);
         SINR_calculation(Permutation,pCurr);
 
         pCurr=pCurr->pNext;
@@ -82,7 +82,8 @@ void LinkList::SINR(int Femto_mode,int Permutation)
 
     //////////------------End of Eb_No calculation----------------/////////////
 }
-
+*/
+/*
 void LinkList::DL_signal_calculation(int Femto_mode,int Permutation,MSNODE* pCurr)
 {
 
@@ -120,10 +121,10 @@ void LinkList::DL_signal_calculation(int Femto_mode,int Permutation,MSNODE* pCur
 
 }//end of DL signal calculation
 
+*/
 
 
-
-
+/*
 void LinkList::interfer_calculation(int Femto_mode,int Permutation,MSNODE* pCurr)
 {
 
@@ -147,8 +148,8 @@ void LinkList::interfer_calculation(int Femto_mode,int Permutation,MSNODE* pCurr
 
 
     //ofstream outfile;
-    //std::ofstream outfile;
-    //outfile.open("inter.xls",std::ios::app);
+    std::ofstream outfile;
+    outfile.open("inter.xls",std::ios::app);
 
     //-------calculate the received interference power-------//
     // The original code has flaws.
@@ -257,7 +258,7 @@ void LinkList::interfer_calculation(int Femto_mode,int Permutation,MSNODE* pCurr
                         temp_I = Max_DL_EIRP + antenna_gain - temp_prop_loss - 10*log10(total_carrier);
                         I_distribute_DL+=pow(10,temp_I/10);//(mW);dB->linear
 
-                        //outfile<< temp_I<< "\t";
+                        outfile<< temp_I<< "\t";
                     }
                 }// if(Permutation ==0)
                 else //FUSC
@@ -290,14 +291,15 @@ void LinkList::interfer_calculation(int Femto_mode,int Permutation,MSNODE* pCurr
                 j ++;
             }// while(j<fsdata....
         } //end for all neighbor FS ...
-        //outfile<<temp_I<<std::endl;
+        outfile<<temp_I<<std::endl;
 
         temp_Interference= 10*log10(I_charge_DL+I_distribute_DL+pow(10,N_DL/10));
 
     } //end of DL interference calculation
 
 } // end of interfer_calculation
-
+*/
+/*
 void LinkList::SINR_calculation(int Permutation,MSNODE* pCurr)
 {
     if(pCurr->msdata.femto_mode==0)
@@ -319,26 +321,26 @@ void LinkList::SINR_calculation(int Permutation,MSNODE* pCurr)
     {
         temp_SINR +=pCurr->msdata.DL_Eb_No;
         // temp_SINR has no use
-        //std::ofstream outfile;
-        //outfile.open("Eb_No_total.xls",std::ios::app);
-        //outfile <<pCurr->msdata.femto_mode<<"\t"<<(pCurr->msdata.position.x)*1000<<"\t"<<pCurr->msdata.position.y<<"\t"<<S_DL<<"\t"<<temp_Interference<<"\t"<<pCurr->msdata.DL_Eb_No<<std::endl;
+        std::ofstream outfile;
+        outfile.open("Eb_No_total.xls",std::ios::app);
+        outfile <<pCurr->msdata.femto_mode<<"\t"<<(pCurr->msdata.position.x)*1000<<"\t"<<pCurr->msdata.position.y<<"\t"<<S_DL<<"\t"<<temp_Interference<<"\t"<<pCurr->msdata.DL_Eb_No<<std::endl;
 
         if(pCurr->msdata.femto_mode ==0)
         {
             temp_SINR_BS +=pCurr->msdata.DL_Eb_No;
             // temp_SINR_BS has no use
-            //std::ofstream outfile;
-            //outfile.open("Eb_No_0.xls",std::ios::app);
-            //outfile <<pCurr->msdata.scell<<"\t"<<pCurr->msdata.on_street<<"\t"<<pCurr->msdata.distance(BSOxy[0],pCurr->msdata.position)<<"\t"<<S_DL<< "\t"<<temp_Interference<<"\t"<<pCurr->msdata.DL_Eb_No<<"\t"<<pCurr->msdata.sub_channel_index<<"\t"<<mbs_sub_channel_mapping(pCurr->msdata.ssector,pCurr->msdata.sub_channel_index)<<std::endl;
+            std::ofstream outfile;
+            outfile.open("Eb_No_0.xls",std::ios::app);
+            outfile <<pCurr->msdata.scell<<"\t"<<pCurr->msdata.on_street<<"\t"<<pCurr->msdata.distance(BSOxy[0],pCurr->msdata.position)<<"\t"<<S_DL<< "\t"<<temp_Interference<<"\t"<<pCurr->msdata.DL_Eb_No<<"\t"<<pCurr->msdata.sub_channel_index<<"\t"<<mbs_sub_channel_mapping(pCurr->msdata.ssector,pCurr->msdata.sub_channel_index)<<std::endl;
             SINR_BS_counter ++;
         }
         else
         {
             temp_SINR_FS +=pCurr->msdata.DL_Eb_No;
             // temp_SINR_FS has no use
-            //std::ofstream outfile;
-            //outfile.open("Eb_No_1.xls",std::ios::app);
-            //outfile <<pCurr->msdata.sFS<<"\t"<<pCurr->msdata.sub_channel_index<<"\t"<<pCurr->msdata.on_street<<"\t"<<pCurr->msdata.distance(fsdata[pCurr->msdata.sFS].position, pCurr->msdata.position)<<"\t"<<pCurr->msdata.position.x<<"\t"<<pCurr->msdata.position.y<<"\t"<<S_DL<<"\t"<<temp_Interference<<"\t"<<pCurr->msdata.DL_Eb_No<<std::endl;
+            std::ofstream outfile;
+            outfile.open("Eb_No_1.xls",std::ios::app);
+            outfile <<pCurr->msdata.sFS<<"\t"<<pCurr->msdata.sub_channel_index<<"\t"<<pCurr->msdata.on_street<<"\t"<<pCurr->msdata.distance(fsdata[pCurr->msdata.sFS].position, pCurr->msdata.position)<<"\t"<<pCurr->msdata.position.x<<"\t"<<pCurr->msdata.position.y<<"\t"<<S_DL<<"\t"<<temp_Interference<<"\t"<<pCurr->msdata.DL_Eb_No<<std::endl;
             SINR_FS_counter ++;
         }
 
@@ -347,3 +349,4 @@ void LinkList::SINR_calculation(int Permutation,MSNODE* pCurr)
     }
 } // end of SINR_calculation
 
+*/

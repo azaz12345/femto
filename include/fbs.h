@@ -34,17 +34,11 @@
  *	@(#)fbs.h	11/02/2010
  */
 
-
+//#define fs_OSG_Percent 0.5
 
 #pragma once
-#ifndef FBS_H
-#define FBS_H
-
-
-
 typedef  unsigned int   INT16;
 //typedef  unsigned long  INT32;
-
 
 class SubChannel
 {
@@ -69,4 +63,4 @@ public:
     INT16    FS_sector_mapping(INT16 FS_index);
 };
 
-#endif
+

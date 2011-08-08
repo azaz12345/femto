@@ -3,11 +3,20 @@
 #include <vector>
 #include <string>
 
+
 typedef struct {
 
 	int index;
 	int Count;
 }DataNum;
+
+typedef struct {
+
+	double x;
+	double y;
+	int CSGID;
+}CSGData;
+
 
 struct findIndex{
 	int index_;
@@ -36,22 +45,26 @@ class Record
         Record(std::string filename);
         virtual ~Record();
 
+        void Scatter(double x , double y ,int CSGID);
+
         void InsertData(double Data);
 
+        void OutputScatter();
         void OutputPDF();
         void OutputCDF();
         double Average();
-        double Variance();
-		double Total();
+        double variance();
+
 
     protected:
     private:
 
     std::string RealTimeInTheWorld;
 
-	std::vector<double> allValue;
     std::vector<DataNum> PDF;
     std::string filename_;
+    std::vector<CSGData> CSGvec;
+
 
 };
 

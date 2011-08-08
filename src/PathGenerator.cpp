@@ -14,11 +14,10 @@ Path include many waypoint;
 
 */
 
-PathGenerator::PathGenerator( int Time, double ticktime ,XYAXIS (*BSOxy)[NUM_CELL] ):
-	SimulationTime(Time),
-	TickTime(ticktime)
+PathGenerator::PathGenerator( int Time, double ticktime ,XYAXIS (*BSOxy)[NUM_CELL] )
 {
-
+    SimulationTime  =   Time;
+    TickTime = ticktime;
     BSOxy_ = BSOxy ;
 
 }
@@ -29,13 +28,14 @@ PathGenerator::~PathGenerator()
 }
 
 
+//void
+//PathGenerator::CreateNewPath( vector<WayPoint> *path, XYAXIS FirstPosition, int Speed )
 void
-PathGenerator::CreateNewPath( vector<WayPoint> *path, XYAXIS FirstPosition, int Speed )
+PathGenerator::CreateNewPath( vector<WayPoint> *path, MSNODE* MS, int Speed )
 {
 
     XYAXIS currPosition;
     XYAXIS _TurnCorner ;
-    XYAXIS _TickPoint ;
     WayPoint currPoint ;
     double  _direction ;
     double  HomeCorner = 0.0;
@@ -45,14 +45,16 @@ PathGenerator::CreateNewPath( vector<WayPoint> *path, XYAXIS FirstPosition, int 
 
     /*隨機產生0~2*PI => 0~360度*/
 
-    currPosition = FirstPosition;
+
+//------------------------初始化------------------------------/
+    currPosition = MS->msdata.position;
     _direction = RandomDirect() ;
     currPoint.xy = currPosition ;
     currPoint.speed= Speed ;
     Mobility_Boundary(&currPosition , &_TurnCorner);
     path->push_back(currPoint);
 
-
+//------------------------------------------------------------/
     for(int i = 1; i<=(int)(SimulationTime/TickTime);)
     {
         if ( DecidePosition( currPosition ) == 0)       //MS in crossroad
@@ -64,7 +66,7 @@ PathGenerator::CreateNewPath( vector<WayPoint> *path, XYAXIS FirstPosition, int 
         else if ( DecidePosition( currPosition ) == 2 ) //MS in Vertical_Street
             _direction = TwoRandomDirect(PI) ;
 
-        else if ( HomeCorner != 0.0 )
+        if ( HomeCorner != 0.0 )
         {
             currPosition.x = currPosition.x + HomeCorner;
             currPosition.y = currPosition.y + Home_Street_Distance ( currPosition , 2 );
@@ -72,19 +74,17 @@ PathGenerator::CreateNewPath( vector<WayPoint> *path, XYAXIS FirstPosition, int 
             HomeCorner = 0.0;
             currPoint.xy = currPosition ;
             path->push_back(currPoint);
-
             i++;
         }
 
-        if( DecidePosition( currPosition ) == 3 ) // MS in Home
-        {
+         if( DecidePosition( currPosition ) == 3 ) // MS in Home
+         {
             int S_H_T = 0; //Stay home time
-            while ( S_H_T < S_H_P*SimulationTime/TickTime && i<SimulationTime/TickTime )
+            while ( S_H_T < S_H_P*SimulationTime/TickTime )
             {
                 Mobility_Boundary(&currPosition , &_TurnCorner);
                 currPoint.xy = currPosition ;
                 path->push_back(currPoint);
-
                 S_H_T ++ ;
                 i++;
             }
@@ -93,14 +93,13 @@ PathGenerator::CreateNewPath( vector<WayPoint> *path, XYAXIS FirstPosition, int 
                 _direction = TwoRandomDirect(PI/2) ;
                 currPoint.xy = currPosition ;
                 path->push_back(currPoint);
-
                 i++;
         }
 
 
 
         _TurnCorner = TurnLine ( currPosition , Speed , _direction , HomeCorner) ;
-		Mobility_Boundary(&currPosition , &_TurnCorner);
+        Mobility_Boundary(&currPosition , &_TurnCorner);
 
         while( ( currPosition.x != _TurnCorner.x ) || ( currPosition.y != _TurnCorner.y ) )
         {
@@ -108,14 +107,13 @@ PathGenerator::CreateNewPath( vector<WayPoint> *path, XYAXIS FirstPosition, int 
             Mobility_Boundary(&currPosition , &_TurnCorner);
             currPoint.xy = currPosition ;
             path->push_back(currPoint);
-
             i++ ;
 
             if (i>SimulationTime/TickTime )
                 break ;
         }
 
-		printf("#TEST1#\n");
+
 #if DEBUG
         printf("產生的位置:(%f,%f)\n",currPosition.x,currPosition.y);
         printf("判斷位置為:%d\n",DecidePosition(currPosition));
@@ -164,8 +162,8 @@ XYAXIS PathGenerator::TurnLine( XYAXIS MsPosition , int Speed , double MsDirecti
     XYAXIS TurnXYAXIS ;
 
     //換成公尺，並把原點改成大路的街道
-        CheckX = MsPosition.x * 1000  ;
-        CheckY = MsPosition.y * 1000  ;
+        CheckX = (int)MsPosition.x * 1000  ;
+        CheckY = (int)MsPosition.y * 1000  ;
 
         CheckX =  CheckX % 230;
         CheckY =  CheckY % 230;
@@ -265,26 +263,22 @@ void PathGenerator::CornerCheck ( int MsCorn , int _MsDirection_,int &BigCorner 
     switch ( OriginCorn )
     {
       case 5 :
-
-
-				if ( Probability( 2 * BigTurn ) == false )
+            if ( Probability( 2 * BigTurn ) == false )
             {
                 BigCorner = BigCorner + 1 ;
                 if( _MsDirection_== 3 || _MsDirection_ == 4)
                 {
-					if ( MsCorn < 0 )
+                    if ( MsCorn < 0 )
                         MsCorn += 10;
 
                     CornerCheck( MsCorn - 1 ,_MsDirection_ , BigCorner ,LittleCorner, HomeCorner) ;
-
-
-
                 }
                 else
                      CornerCheck( MsCorn + 1 ,_MsDirection_ , BigCorner ,LittleCorner, HomeCorner ) ;
 
-				break;
+                break;
             }
+
 
             if ( Probability( InHome ) == true  )
             {
@@ -299,33 +293,27 @@ void PathGenerator::CornerCheck ( int MsCorn , int _MsDirection_,int &BigCorner 
                     break ;
                 }
             }
-
-                break ;
+            break ;
 
       default :
-
-
-            if ( Probability( 2 * LittleTurn ) == false )
-            {
+             if ( Probability( 2 * LittleTurn ) == false )
+             {
                 LittleCorner = LittleCorner + 1 ;
                 if( _MsDirection_ == 3 || _MsDirection_ == 4)
                 {
                     if ( MsCorn < 0 )
-                        MsCorn += 10;
-
+                    MsCorn += 10;
                     CornerCheck( MsCorn - 1 ,_MsDirection_ , BigCorner ,LittleCorner,HomeCorner) ;
-
-
                 }
                 else
                     CornerCheck( MsCorn + 1 , _MsDirection_ , BigCorner ,LittleCorner,HomeCorner)  ;
 
-				break ;
-            }
+                break ;
+             }
 
 
-            if ( Probability( InHome ) == true )
-            {
+             if ( Probability( InHome ) == true )
+             {
                 if( _MsDirection_ == 3 )
                 {
                     HomeCorner = 0.01;
@@ -336,10 +324,8 @@ void PathGenerator::CornerCheck ( int MsCorn , int _MsDirection_,int &BigCorner 
                     HomeCorner = -0.01;
                     break ;
                 }
-            }
-
-			break ;
-
+             }
+             break ;
     }
 };
 

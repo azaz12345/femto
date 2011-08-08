@@ -51,8 +51,8 @@ double LinkList::insertLast(double t_new, double traffic_load, int Femto_mode) /
 
     MSNODE* pNewNode = new MSNODE;      //(MSINFO *msd); //make new link
 
-    interval = RT_time/traffic_load;   //average inter-arrival time of RT service
-    if(RT_prob != 0)
+    interval = RT_time/traffic_load;   //average inter-arrival time of RT service     //RT = 200
+    if(RT_prob != 0)                                                                  //RT_prob = 1
         interval = interval*RT_prob;   //average inter-arrival time of all services
     //Initilization of New Msnode//
     ptemp=Rand();
@@ -322,8 +322,8 @@ double LinkList::init_msnode(double t_new, MSNODE* pCurr, int Femto_mode)
         }// end of for
     }
 
-    //std::ofstream outfile;
-   // outfile.open("RSSI.xls", std::ios::app);
+    std::ofstream outfile;
+    outfile.open("RSSI.xls", std::ios::app);
     if( pCurr->msdata.RSSI[0]>Best_FS_Quality || Femto_mode==0 || fs_near_num ==0 )
     {
         // connect to macro
@@ -341,7 +341,7 @@ double LinkList::init_msnode(double t_new, MSNODE* pCurr, int Femto_mode)
             MS_use_femto_num ++;
     } // end of else
 
-   // outfile<<pCurr->msdata.femto_mode<<"\t"<<pCurr->msdata.RSSI[0]<<"\t"<<Best_FS_Quality<<std::endl;
+    outfile<<pCurr->msdata.femto_mode<<"\t"<<pCurr->msdata.RSSI[0]<<"\t"<<Best_FS_Quality<<std::endl;
 
     angle = atan2(pCurr->msdata.position.y,pCurr->msdata.position.x);
 
@@ -384,15 +384,26 @@ void LinkList::node_departure()
 //remove the msnode at pCurrent
 MSNODE* LinkList::rmv_msnode(MSNODE* pCurr)
 {
+    int ch_index;
     MSNODE* pRmv = pCurr;
-
-    if (pCurr== pFirst && pCurr ==pLast)
+    if(pRmv->pPrevious != NULL)
     {
-        pFirst = NULL;
-        pLast = NULL;
+        pRmv->pPrevious->pNext = pRmv->pNext;
+        pCurr = pRmv->pPrevious;
+    }
+    else{
+        pFirst = pRmv->pNext;
+        pCurr = pFirst;
     }
 
-    length --;
+    if(pRmv->pNext != NULL)
+        pRmv->pNext->pPrevious = pRmv->pPrevious;
+    else{
+        pLast = pRmv->pPrevious;
+        pCurr = pLast;
+    }
+    --length;
+
     delete pRmv;
     return pCurr;
 }

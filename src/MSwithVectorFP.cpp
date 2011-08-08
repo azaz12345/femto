@@ -1,18 +1,15 @@
 #include "MobileStation.h"
 #include "external_parameters.h"
 #include "SimulatorParameter.h"
-#include <set>
 #include <algorithm>
 #include <cmath>
-#include "SimulatorParameter.h"
-#include "Record.h"
 
 MSwithVectorFP::MSwithVectorFP( LinkList* Userlist_, XYAXIS (*BSOxy)[NUM_CELL],
 											FS_INFO (*fsdata__)[FS_NUM],
-											int Permutation__):
-	MobileStationBase(Userlist_,BSOxy,fsdata__,Permutation__)
+											int Permutation__,CSG* csg_):
+	MobileStationBase(Userlist_,BSOxy,fsdata__,Permutation__,csg_)
 {
-
+    FemtoListByFP = new vector<int>;
 }
 
 
@@ -65,14 +62,14 @@ MSwithVectorFP::UpdateMSINFO( MSNODE* msnode_, double numticktime, double tickti
 
 
 /*********************加快程式運作*****************************/
-	if(msnode->msdata.femto_mode==0)			RSSI_ServingBS=MacroRSSI(msnode->msdata.ssector,msnode->msdata.scell,1);
-	else if(msnode->msdata.femto_mode==1)	RSSI_ServingBS=FemtoRSSI(msnode->msdata.sFS,2);
+
+/*************************SINR*********************************/
+
 
 /***********************掃描&換手決策***************************/
-
+	VectorFP PreFP,currFP;
+	XYAXIS PreLocation,currLocation;
 	BSINFO optimumFemtoTarget;
-
-
 	//Serving is macro & Period scan
 	if( ( (int)(numticktime - msnode->msdata.ScanStartTickTime)%((int)(msnode->msdata.ScanPeriod/ticktime))==0 && msnode->msdata.femto_mode==0 ))
 	{
@@ -80,147 +77,79 @@ MSwithVectorFP::UpdateMSINFO( MSNODE* msnode_, double numticktime, double tickti
 		//printf("Serving:Macro\tPeriod Scan\n");
 		MacroScan();
 
-		preFP = msnode->msdata.VectorFingerprint;
-		UpdateFP(numticktime*ticktime);
-		currFP = msnode->msdata.VectorFingerprint;
-		///GenVectorFP GenVtFP_V(msnode->msdata.scell);
-		///if(numticktime > (int)(msnode->msdata.ScanPeriod/ticktime))
-		///msnode->msdata.VelocityState = GenVtFP_V.EstVelocityState( currFP, preFP, (currFP.time-preFP.time), 15);
-		//printf("%f\tcurrFP.time:%f\tpreFP.time:%f\n",numticktime*ticktime,currFP.time,preFP.time);
+		//PreFP = msnode->msdata.VectorFingerprint;
+		UpdateFP();
+		//currFP = msnode->msdata.VectorFingerprint;
+		//GenVectorFP genVFP(msnode->msdata.scell);
+		//printf("################estAngle:%f\t%f\t%f\n",genVFP.EstAngle(currFP,PreFP)/PI*180,realAngle(msnode->msdata.position ,msnode->msdata.preposition ,msnode->msdata.scell )/PI*180,genVFP.EstAngle(currFP,PreFP)/PI*180-realAngle(msnode->msdata.position ,msnode->msdata.preposition ,msnode->msdata.scell )/PI*180);
 
-		///extern Record ReRealAngle;
-		///ReRealAngle.InsertData(realAngle(msnode->msdata.position,msnode->msdata.preposition,msnode->msdata.scell)*180/PI*1000);
+
 
 		extern double MeanNumInList;
 		extern long int countList;
-		extern double ListMissRateTotal;
 		getNeighborFemtoList();
-		vector<int> NeighborListBySys;
-		vector<int> intersectionResult;
-		for(int i=0; i < msnode->msdata.fs_near_num; i++)
-		{
-			NeighborListBySys.push_back(msnode->msdata.FS_NEAR[i]);
-		}
-		sort(NeighborListBySys.begin(),NeighborListBySys.end());
 		MeanNumInList+= getFemtoListByFP(VFP_LENGTH);
-		sort(FemtoListByFP.begin(),FemtoListByFP.end());
-		set_intersection(FemtoListByFP.begin(),FemtoListByFP.end(),NeighborListBySys.begin(),NeighborListBySys.end(),inserter(intersectionResult,intersectionResult.begin()));
-		extern Record ReMissRate;
-		ReMissRate.InsertData(100*(FemtoListByFP.size()-intersectionResult.size())/FemtoListByFP.size());
-		ListMissRateTotal += ((FemtoListByFP.size()-intersectionResult.size())/FemtoListByFP.size());
-		//printf("###miss number in list:%d\n",(FemtoListByFP.size()-intersectionResult.size()));
-		countList++;
+		countList++;                                 //triger HO count
 
-		//取得最佳Target
-		optimumFemtoScan();
-		optimumFemtoTarget = DecideTargetCell(2);
+		optimumFemtoScan();                          //0.35 femtocell scanlist
+		optimumFemtoTarget = DecideTargetCell(2);    //check RSSI , SINR , UserNumber , CSG
 		Femtolist.clear();
 
-		FemtoScan();
+		FemtoScan();                                 //check RSSI
 
-		HandoverDecision();
+		HandoverDecision();                          //assign channel to MS and HO to MS
 
-		extern double OptimumTargetmissCount;
+		extern double missCount;
 		if(optimumFemtoTarget.BSTYPE!=0)
 		if(find_if( Femtolist.begin(), Femtolist.end(),findBSID(optimumFemtoTarget.BSID) ) == Femtolist.end())
-		{OptimumTargetmissCount++;}
+		{missCount++;}
 
 	//Serving is macro && treigger scan
-	}else if ( (msnode->msdata.femto_mode==0) && (RSSI_ServingBS < -100) ){
+	}else if ( (msnode->msdata.femto_mode==0) && (MacroRSSI(msnode->msdata.ssector,msnode->msdata.scell,1) < -100) ){
 
 		//printf("Serving:macro\ttrigger Scan\tRSSI:%f\n",MacroRSSI(msnode->msdata.ssector,msnode->msdata.scell,1));
 		MacroScan();
 
 
-		preFP = msnode->msdata.VectorFingerprint;
-		UpdateFP(numticktime*ticktime);
-		currFP = msnode->msdata.VectorFingerprint;
-		///GenVectorFP GenVtFP_V(msnode->msdata.scell);
-		///if(numticktime > (int)(msnode->msdata.ScanPeriod/ticktime))
-		///msnode->msdata.VelocityState = GenVtFP_V.EstVelocityState( currFP, preFP, (currFP.time-preFP.time), 15);
-		//printf("%f\tcurrFP.time:%f\tpreFP.time:%f\n",numticktime*ticktime,currFP.time,preFP.time);
+		UpdateFP();
 
-
-		///extern Record ReRealAngle;
-		///ReRealAngle.InsertData(realAngle(msnode->msdata.position,msnode->msdata.preposition,msnode->msdata.scell)*180/PI*1000);
 
 		extern double MeanNumInList;
 		extern long int countList;
-		extern double ListMissRateTotal;
 		getNeighborFemtoList();
-		//printf("##1\n");
-		vector<int> NeighborListBySys;
-		vector<int> intersectionResult;
-		for(int i=0; i<msnode->msdata.fs_near_num; i++)
-		{
-			NeighborListBySys.push_back(msnode->msdata.FS_NEAR[i]);
-		}
-		sort(NeighborListBySys.begin(),NeighborListBySys.end());
 		MeanNumInList+= getFemtoListByFP(VFP_LENGTH);
-		//printf("##2\n");
-		sort(FemtoListByFP.begin(),FemtoListByFP.end());
-		set_intersection(FemtoListByFP.begin(),FemtoListByFP.end(),NeighborListBySys.begin(),NeighborListBySys.end(),inserter(intersectionResult,intersectionResult.begin()));
-		extern Record ReMissRate;
-		ReMissRate.InsertData(100*(FemtoListByFP.size()-intersectionResult.size())/FemtoListByFP.size());
-		ListMissRateTotal += ((FemtoListByFP.size()-intersectionResult.size())/FemtoListByFP.size());
-		//printf("###miss number in list:%d\n",(FemtoListByFP.size()-intersectionResult.size()));
 		countList++;
-		//printf("##3\n");
-		//取得最佳Target
+
 		optimumFemtoScan();
 		optimumFemtoTarget = DecideTargetCell(2);
 		Femtolist.clear();
-		//printf("##4\n");
+
 		FemtoScan();
-		//printf("##5\n");
+
 		HandoverDecision();
 
-		extern double OptimumTargetmissCount;
+		extern double missCount;
 		if(optimumFemtoTarget.BSTYPE!=0)
 		if(find_if( Femtolist.begin(), Femtolist.end(),findBSID(optimumFemtoTarget.BSID) ) == Femtolist.end())
-		{OptimumTargetmissCount++;}
+		{missCount++;}
 
 	//Serving is femto && trigger scan
-	}else if( (msnode->msdata.femto_mode==1) && (RSSI_ServingBS < -95)){
+	}else if( (msnode->msdata.femto_mode==1) && (FemtoRSSI(msnode->msdata.sFS,2) < -95)){
 
 
 		//printf("Serving:femto\ttrigger Scan\tRSSI:%f\n",FemtoRSSI(msnode->msdata.sFS,2));
 		MacroScan();
 
 
-		preFP = msnode->msdata.VectorFingerprint;
-		UpdateFP(numticktime*ticktime);
-		currFP = msnode->msdata.VectorFingerprint;
-		///GenVectorFP GenVtFP_V(msnode->msdata.scell);
-		///if(numticktime > (int)(msnode->msdata.ScanPeriod/ticktime))
-		///msnode->msdata.VelocityState = GenVtFP_V.EstVelocityState( currFP, preFP, (currFP.time-preFP.time), 15);
-		//printf("%f\tcurrFP.time:%f\tpreFP.time:%f\n",numticktime*ticktime,currFP.time,preFP.time);
-
-		///extern Record ReRealAngle;
-		///ReRealAngle.InsertData(realAngle(msnode->msdata.position,msnode->msdata.preposition,msnode->msdata.scell)*180/PI*1000);
+		UpdateFP();
 
 
 		extern double MeanNumInList;
 		extern long int countList;
-		extern double ListMissRateTotal;
 		getNeighborFemtoList();
-		vector<int> NeighborListBySys;
-		vector<int> intersectionResult;
-		for(int i=0; i<msnode->msdata.fs_near_num; i++)
-		{
-			NeighborListBySys.push_back(msnode->msdata.FS_NEAR[i]);
-		}
-		sort(NeighborListBySys.begin(),NeighborListBySys.end());
 		MeanNumInList+= getFemtoListByFP(VFP_LENGTH);
-		sort(FemtoListByFP.begin(),FemtoListByFP.end());
-		set_intersection(FemtoListByFP.begin(),FemtoListByFP.end(),NeighborListBySys.begin(),NeighborListBySys.end(),inserter(intersectionResult,intersectionResult.begin()));
-		extern Record ReMissRate;
-		ReMissRate.InsertData(100*(FemtoListByFP.size()-intersectionResult.size())/FemtoListByFP.size());
-		ListMissRateTotal += ((FemtoListByFP.size()-intersectionResult.size())/FemtoListByFP.size());
-		//printf("###miss number in list:%d\n",(FemtoListByFP.size()-intersectionResult.size()));
 		countList++;
 
-		//取得最佳Target
 		optimumFemtoScan();
 		optimumFemtoTarget = DecideTargetCell(2);
 		Femtolist.clear();
@@ -229,92 +158,36 @@ MSwithVectorFP::UpdateMSINFO( MSNODE* msnode_, double numticktime, double tickti
 
 		HandoverDecision();
 
-		extern double OptimumTargetmissCount;
+		extern double missCount;
 		if(optimumFemtoTarget.BSTYPE!=0)
 		if(find_if( Femtolist.begin(), Femtolist.end(),findBSID(optimumFemtoTarget.BSID) ) == Femtolist.end())
-		{OptimumTargetmissCount++;}
+		{missCount++;}
 
 	}
-
-
-	//------------------------------------------------
-	//Analysis
-	//------------------------------------------------
+	//analysis
 	extern double outage;
-	//printf("MS%d\tPosition:(%f,%f)\t%s\tBlock %d\n",msnode->msdata.ID,msnode->msdata.position.x,msnode->msdata.position.y,IsOnStreet(msnode->msdata.position)?"街道":"房子",WhichBlock(msnode->msdata.position));
 
-
-	if((msnode->msdata.femto_mode==0) && (RSSI_ServingBS < -100))
+	if((msnode->msdata.femto_mode==0) && (MacroRSSI(msnode->msdata.ssector,msnode->msdata.scell,1) < -100))
 	{
-		///printf("MS%d\tBlocking!!Position:(%f,%f)\t%s\tBlock %d\n",msnode->msdata.ID,msnode->msdata.position.x,msnode->msdata.position.y, msnode->msdata.on_street?"街道":"房子",WhichBlock(msnode->msdata.position));
-		extern int outNum;
-		outNum++;
-		//printf("Outage!!!!!%f\n",outage);
+		//printf("OutageM!!!!!%f\n",outage);
 		outage++;
 	}
-	else if( (msnode->msdata.femto_mode==1) && (RSSI_ServingBS < -100))
+	else if( (msnode->msdata.femto_mode==1) && (FemtoRSSI(msnode->msdata.sFS,2) < -100))
 	{
-		///printf("MS%d\tBlocking!!Position:(%f,%f)\t%s\tBlock %d\n",msnode->msdata.ID,msnode->msdata.position.x,msnode->msdata.position.y, msnode->msdata.on_street?"街道":"房子",WhichBlock(msnode->msdata.position));
-		extern int outNum;
-		outNum++;
-		//printf("Outage!!!!!%f\n",outage);
+		//printf("OutageF!!!!!%f\n",outage);
 		outage++;
 	}
-
-
-	if((msnode->msdata.femto_mode==0) && (RSSI_ServingBS >= -100))
+    if((msnode->msdata.femto_mode==0) && (MacroRSSI(msnode->msdata.ssector,msnode->msdata.scell,1) >= -100))
 	{
-		extern int macroNum;
-		macroNum++;
+		extern int macroNum_;
+		macroNum_++;
 	}
-	if( (msnode->msdata.femto_mode==1) && (RSSI_ServingBS >= -100))
+	if( (msnode->msdata.femto_mode==1) && (FemtoRSSI(msnode->msdata.sFS,2) >= -100))
 	{
-		extern int femtoNum;
-		femtoNum++;
+		extern int femtoNum_;
+		femtoNum_++;
 	}
-
-	if(msnode->msdata.speed>15 && IsOnStreet(msnode->msdata.position)==true)
-	{
-		if(numticktime > (int)(msnode->msdata.ScanPeriod/ticktime))
-		{
-			extern double speedDetectionErrorTotal;
-			if(msnode->msdata.VelocityState==2) speedDetectionErrorTotal++;
-
-			extern Record ReSpeedDeteError;
-			if(msnode->msdata.VelocityState==2) ReSpeedDeteError.InsertData(1);
-			else ReSpeedDeteError.InsertData(0);
-
-			extern double speedDetectionTotalCount;
-			speedDetectionTotalCount++;
-
-		}
-
-
-	}
-	else if (msnode->msdata.speed<15 && IsOnStreet(msnode->msdata.position)==true)
-	{
-		if(numticktime > (int)(msnode->msdata.ScanPeriod/ticktime))
-		{
-			extern double speedDetectionErrorTotal;
-			if(msnode->msdata.VelocityState==1) speedDetectionErrorTotal++;
-
-			extern Record ReSpeedDeteError;
-			if(msnode->msdata.VelocityState==1) ReSpeedDeteError.InsertData(1);
-			else ReSpeedDeteError.InsertData(0);
-
-			extern double speedDetectionTotalCount;
-			speedDetectionTotalCount++;
-
-		}
-
-	}
-
-	//system("pause");
-
-    //Macrolist.clear();
-	//Femtolist.clear();
 }
-
 
 
 struct FemtoDifference{
@@ -434,7 +307,7 @@ MSwithVectorFP::getFemtoListByFP(int length)
 		//ReListMeanDistanceBtwUserFetmo.InsertData(msnode->msdata.distance(msnode->msdata.position,(*fsdata_)[it->FemtoID].position)*1000);
 
 
-		FemtoListByFP.push_back((*it).FemtoID);
+		FemtoListByFP->push_back((*it).FemtoID);
 /*
 		if(msnode->msdata.distance(msnode->msdata.position,(*fsdata_)[it->FemtoID].position)>0.35)
 		{
@@ -467,15 +340,8 @@ MSwithVectorFP::getFemtoListByFP(int length)
 	//printf("miss number in List:%d\n",outconunt);
 	//system("pause");
 
-	extern Record ReListLength;
-	//if(length>10) system("pause");
-	ReListLength.InsertData(length);
-
-
-
 	return FsListNum;
 }
-
 
 
 void
@@ -483,7 +349,7 @@ MSwithVectorFP::FemtoScan(){
 
 	sortByRSSI SortObj;
 
-	for(vector<int>::iterator femtoit=FemtoListByFP.begin(); femtoit!=FemtoListByFP.end();femtoit++)
+	for(vector<int>::iterator femtoit=FemtoListByFP->begin(); femtoit!=FemtoListByFP->end();femtoit++)
 	{
 		BSINFO fbs;
 
@@ -491,10 +357,9 @@ MSwithVectorFP::FemtoScan(){
 		fbs.BSTYPE = 2;
 		fbs.RSSI =  FemtoRSSI( (*femtoit), 2);
 
-		if(fbs.RSSI>=-100) Femtolist.push_back(fbs);
+		if(fbs.RSSI>-100) Femtolist.push_back(fbs);
 
 	}
-
 	sort( Femtolist.begin(), Femtolist.end(), SortObj);
 
 }
@@ -511,7 +376,7 @@ MSwithVectorFP::optimumFemtoScan(){
 
     	BSINFO fbs;
 
-        msnode->msdata.FS_RSSI[i] = NbrFemtoRSSI_For_calculateSINR_[i].RSSI;//FemtoRSSI( msnode->msdata.FS_NEAR[i], 2);
+        msnode->msdata.FS_RSSI[i] = FemtoRSSI( msnode->msdata.FS_NEAR[i], 2);
         //msnode->msdata.FS_RSSI[i] = CrtChFemtoSINR( msnode->msdata.FS_NEAR[i], 2);
 
 
@@ -521,75 +386,12 @@ MSwithVectorFP::optimumFemtoScan(){
         fbs.BSTYPE	= 2;
         fbs.RSSI		= msnode->msdata.FS_RSSI[i];
 
-		if(fbs.RSSI>=-100){
+		if(fbs.RSSI>-100){
 			Femtolist.push_back( fbs);
 		}
-
     }
 	sort( Femtolist.begin(), Femtolist.end(), SortObj);
 
 
 }
-#if EST_SPEED_BY_FP
-int
-MSwithVectorFP::UserStateDicision(){
-
-	int ServingCellType = msnode->msdata.femto_mode;
-	printf("MS%d: %s\n",msnode->msdata.ID, msnode->msdata.VelocityState==2 ? "走速":"高速");
-
-
-    if( ServingCellType==0 && msnode->msdata.VelocityState==1)
-    {
-		return HIGH_VELOCITY_SERVING_MACRO;
-    }
-
-    if( ServingCellType==1 && msnode->msdata.VelocityState==1)
-    {
-		return HIGH_VELOCITY_SERVING_FEMTO;
-    }
-
-	if( ServingCellType==0 && msnode->msdata.VelocityState==2)
-    {
-		return LOW_VELOCITY_SERVING_MACRO;
-    }
-
-    if( ServingCellType==1 && msnode->msdata.VelocityState==2)
-    {
-		return LOW_VELOCITY_SERVING_FEMTO;
-    }
-
-
-	return UNKNOW_STATE;
-
-}
-#endif
-
-void
-MSwithVectorFP::UpdateFP(double time){
-
-
-		//printf("Upading FP\n");
-		GenLevelFP<FP_LEVEL > GenLvFp_(-60.0,-100.0);
-		msnode->msdata.LevelFingerprint		= GenLvFp_.buildFP(msnode->msdata.RSSI);
-
-
-		if(msnode->msdata.femto_mode==0){
-
-			GenVectorFP  GenVtFP_(msnode->msdata.scell);
-
-			msnode->msdata.VectorFingerprint	= GenVtFP_.buildFP(msnode->msdata.RSSI, time);
-
-
-			//printf("TEST:%d\n",GenVtFP_.distance(msnode->msdata.VectorFingerprint,(*fsdata_)[35].VectorFingerprint));
-
-		}else{
-
-			GenVectorFP GenVtFP_( (*fsdata_)[msnode->msdata.sFS].marco_index );
-
-			msnode->msdata.VectorFingerprint	= GenVtFP_.buildFP(msnode->msdata.RSSI, time);
-
-			//printf("TEST:%d\n",GenVtFP_.distance(msnode->msdata.VectorFingerprint,(*fsdata_)[35].VectorFingerprint));
-		}
-
-};
 

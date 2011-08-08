@@ -54,9 +54,13 @@
 #include  <time.h>
 #include <stdlib.h>
 #include <valarray>
-
 #include "GenFingerprintBase.h"
 #include "SimulatorParameter.h"
+#include "EventQueue.h"
+#include "tool.h"
+
+extern  EventQueue EvQue_;
+
 
 #define    SERVICE_DISRUPTION_TIME       "Service_Disruption_Time.dat"
 #define    STASTICS     "Stastics.dat"
@@ -80,6 +84,8 @@ typedef struct
 } POLAXIS;
 
 
+
+
 /*RadioBand分成w1 w2 w3分別為0 1 2
     (目前採用隨機選擇)
  */
@@ -101,13 +107,15 @@ typedef struct
     } UserInfo;
     int RadioBand;				//0~2
     int DataChannel[10];    //有使用則設為1
+
     LevelFP<FP_LEVEL > 	LevelFingerprint;
     VectorFP		VectorFingerprint;
 
-
     int sub_channel_index[2];
     int ms_num;
-    int fs_mode;
+    int fs_mode ;
+    int CSG_GROUP;
+    bool Power_State ;
     double FS_DL_EIRP;
     double FS_MAX_DL_power;
     XYAXIS position;
@@ -143,7 +151,7 @@ enum  SERVICE  {RT,NRT};                         //service types -> real-time (R
 
 const double BW					= 10.0;            //(MHz)channl bandwidth
 const double Noise_power        = -174+10*log10(BW*1000000); //(dBm) thermal noise power within whole band
-const double Noise_power_density    = -166.93;        //(dBm/Hz)
+const double Noise_power_density    = -174;        //(dBm/Hz)
 const double A_subcarrier_frequency = 10.9375*1000;   //Hz
 
 const double Back_off           = 5;              //(dB)amplifier backoff of OFDM transmitter
@@ -166,7 +174,7 @@ const double RT_time            = 200;           //(sec) mean service time of re
 const double  PI                 = 3.14159266;
 const double  SECTOR_Steer_dir[NUM_SECTOR]        = {0, 2*PI/3, 4*PI/3};  //steering direction of the BS antennas
 const double  K                   = 1;            // reuse factor
-const double  R                   = CELL_RADIOUS;            //(km) cell radious
+const double  R                   = 0.6;            //(km) cell radious
 
 
 //  class_def
@@ -197,10 +205,9 @@ class MSINFO:public COORD
     friend class MSNODE;
 public:
 
-	int				ID;
+    int            ID;
     double         session;              //service time for circuit switched service
     XYAXIS         position;             //relative axis to serving BS
-    XYAXIS			preposition;
     INT16          scell;                //current serving BS index
     INT16          ssector;              //current serving sector index in BS
     INT16		 on_street;			   // 0 -> MS stay indoor; 1-> MS is on street.
@@ -230,19 +237,20 @@ public:
     INT16          serial;
 //--------------------for Handoff algorithms------------------//
     double         RSSI[NUM_CELL];
-
+//-------------------Call time------------------------------//
+    bool           CallState;
+    double         CallTime;
+    double         Call_Interval;
 
 //---------------------------CSG Whitelist---------------------------------//
 
+    int CSG_GROUP;
 //-------------------------------SCAN---------------------------------------//
 	double ScanPeriod;
 	double ScanStartTickTime;
-
-//---------------------------------Fingerprint-------------------------------//
+//------------------------------Fingerprint--------------------------------------//
 	LevelFP<FP_LEVEL > LevelFingerprint;
-	VectorFP		VectorFingerprint;
-//---------------------VelocityState------------------------------//
-	int VelocityState;
+    VectorFP		VectorFingerprint;
 
 
 //--------------------------------------//
@@ -263,6 +271,9 @@ public:
         sFS=0;
         DL_Eb_No=0;
         MCS_DL=1;
+        CallState = false;
+        CallTime = 0.0;
+
         ScanPeriod=0;
         ScanStartTickTime=0;
 
@@ -278,7 +289,6 @@ public:
         }
         direction=0.0;
         serial=0;
-        VelocityState=2;
     }
     ~MSINFO() {}
 };
@@ -301,6 +311,9 @@ public:
     ~MSNODE() {}
 //-------------------------------------//
 }; //end of class MSNODE
+
+
+
 
 
 //****************************************************************************//
@@ -360,11 +373,11 @@ public:
     void		node_departure();
     void     DL_sub_channel_initial();
     //---------------------------------------//
-    void     SINR(int Femto_mode,int Permutation);
+//   void     SINR(int Femto_mode,int Permutation);
     void     LIF_assign_channel(int Femto_mode,int Permutation,MSNODE* pCurr);
-    void     DL_signal_calculation(int Femto_mode,int Permutation,MSNODE* pCurr);
-    void     interfer_calculation(int Femto_mode,int Permutation,MSNODE* pCurr);
-    void     SINR_calculation(int Permutation,MSNODE* pCurr);
+//    void     DL_signal_calculation(int Femto_mode,int Permutation,MSNODE* pCurr);
+//    void     interfer_calculation(int Femto_mode,int Permutation,MSNODE* pCurr);
+//   void     SINR_calculation(int Permutation,MSNODE* pCurr);
     double   antenna_pattern(double steer_dir, double target_dir);
     double   pathloss(int channel_index, XYAXIS TX_location, XYAXIS RX_location);
     //---------------------------------------//
@@ -378,5 +391,58 @@ public:
     double   SINR_to_BER(double Eb_No, int Mod_order);
     //---------------------------------------//
 }; //End of class LinkList
+
+
+
+
+class LinkListEvPrcs:public EventProcess{
+
+public:
+    LinkListEvPrcs(LinkList* linklist){
+        linklist_ = linklist;
+    };
+
+    virtual void ProcessEvent(int type, void* msnode){
+        switch(type){
+            case INSER_NODE:
+            {
+
+                linklist_->insertLast(0,0,1);
+
+
+                extern long Seed;
+                Event event;
+                double ServTime = ExpRand(200,&Seed);
+                event.EventType_= RMV_NODE;
+                event.time_     = EvQue_.getClock()+ServTime;
+                event.node_     = linklist_->pLast;
+                event.EvProc_   = this;
+                printf("##event.time_:%f\tServTime:%f\n",event.time_,ServTime);
+                EvQue_.pushEvent(event);
+
+
+                break;
+            }
+            case RMV_NODE:
+            {
+                //printf("RMV_NODE\n");
+                //printf("Memmory addr:%d\n",msnode);
+                linklist_->rmv_msnode((MSNODE*)msnode);
+
+                break;
+
+            }
+
+        }
+
+    };
+
+
+private:
+
+    LinkList* linklist_;
+
+};
+
 
 #endif

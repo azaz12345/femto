@@ -6,6 +6,7 @@
 #include <fstream>
 #include <time.h>
 
+
 Record::Record(std::string  filename)
 :filename_(filename)
 {
@@ -24,11 +25,25 @@ Record::~Record()
     //dtor
 }
 
-void Record::InsertData(double Data)
+void Record::Scatter(double x , double y ,int CSGID)
 {
 
-	allValue.push_back(Data);
+    std::vector<CSGData>::iterator itCSGData;
 
+    CSGData CSG_Data;
+
+    CSG_Data.x = x ;
+    CSG_Data.y = y ;
+    CSG_Data.CSGID = CSGID ;
+
+    CSGvec.push_back(CSG_Data);
+}
+
+
+
+
+void Record::InsertData(double Data)
+{
 
     std::vector<DataNum>::iterator itPDF;
     if( ( itPDF = find_if( PDF.begin(), PDF.end(), findIndex((int)Data))) == PDF.end() )
@@ -44,6 +59,24 @@ void Record::InsertData(double Data)
     itPDF->Count++;
 
 }
+
+void Record::OutputScatter()
+{
+
+    std::string fileName_Scatter = filename_+"position.xls";
+
+    std::ofstream Scatter_file;
+    Scatter_file.open( fileName_Scatter.c_str(), std::ios::out);
+
+    for(std::vector<CSGData>::iterator itCSGData=CSGvec.begin(); itCSGData!=CSGvec.end(); itCSGData++)
+    {
+        Scatter_file<<itCSGData->x<<'\t'<<itCSGData->y<<'\t'<<itCSGData->CSGID<<'\t'<<std::endl;
+    }
+
+    Scatter_file.close();
+}
+
+
 
 void Record::OutputPDF()
 {
@@ -70,8 +103,6 @@ void Record::OutputPDF()
     }
 
     pdf_file.close();
-
-
 }
 
 void Record::OutputCDF()
@@ -106,42 +137,9 @@ void Record::OutputCDF()
 
 double Record::Average()
 {
-	double mean=0;
-	double total=0;
-	for(std::vector<double>::iterator itallValue=allValue.begin(); itallValue!=allValue.end(); itallValue++)
-	{
 
-		total+=(*itallValue);
-	}
-
-	return total/allValue.size();
 }
 
-double Record::Variance()
-{
-	double mean=Average();
-	double total=0;
-
-	for(std::vector<double>::iterator itallValue=allValue.begin(); itallValue!=allValue.end(); itallValue++)
-	{
-
-		total+=(((*itallValue)-mean)*((*itallValue)-mean));
-	}
-
-
-	return total/allValue.size();
-}
-
-double Record::Total()
-{
-	double total=0;
-
-	for(std::vector<double>::iterator itallValue=allValue.begin(); itallValue!=allValue.end(); itallValue++)
-	{
-
-		total+=(*itallValue);
-	}
-
-	return total;
-}
+double Record::variance()
+{}
 

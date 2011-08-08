@@ -2,10 +2,11 @@
 
 
 
+
 CSG::CSG ()
 {
-
-
+    v_fs_near_CSG = new vector < vector<int> >;
+    //cdor
 };
 
 void
@@ -20,8 +21,6 @@ CSG::NeighborFemto( vector<WayPoint> *path )
 
     for(vector<WayPoint>::iterator it = path->begin(); it != path->end(); it++)
     {
-        U_Pathlist = new vector<WayPoint>[_size];
-
         //§ä¥XMS¦b­þ­ÓBLOCK
         nearest_x_street_index= (int) floor(it->xy.x/block_unit)+6;
         nearest_y_street_index= abs( (int) floor(it->xy.y/block_unit)-4);
@@ -39,8 +38,8 @@ CSG::NeighborFemto( vector<WayPoint> *path )
                 {
                     while(fap_ix < BLOCK[s_block].FS_num_length)
                     {
-                        _temp_distance = _Distance(fsdata[BLOCK[s_block].FS_num[fap_ix]].position, it->xy);
-                        if(_temp_distance < 0.3) //
+                        _temp_distance = distance(fsdata[BLOCK[s_block].FS_num[fap_ix]].position, it->xy);
+                        if(_temp_distance < 0.2) //
                         {
 
                                 v_fs_near->push_back(BLOCK[s_block].FS_num[fap_ix]);
@@ -56,57 +55,60 @@ CSG::NeighborFemto( vector<WayPoint> *path )
         it = unique(v_fs_near->begin(), v_fs_near->end());
         v_fs_near->resize( it - v_fs_near->begin() );
 
-        printf("fs_near_num %d", v_fs_near->size());
-/*
-    for(vector<int>::iterator inter = v_fs_near->begin(); inter != v_fs_near->end(); inter++)
-    {
-        printf("\nfs_near %d", *inter);
-    }
-*/
-//        system("pause");
+
 };
 
 void
-CSG::NeighborCSG_OSG( )
+CSG::NeighborCSG_OSG()
 {
-
     int fs_near_CSG_num ,i = 0;
     double j;
-    v_fs_near_CSG = new vector<int>;
 
+    //vector < vector<int> > v_fs_near_CSG ;
+    vector <int> Num_MS ;
+    vector<int>::iterator its;
+
+    fs_near_CSG_num = (int) (fs_CSG_Percent * v_fs_near->size());
+
+    Search:
     for(vector<int>::iterator inter = v_fs_near->begin(); inter != v_fs_near->end(); inter++)
     {
         if( fsdata[*inter].fs_mode == 0 )
         {
-            fs_near_CSG_num = fs_CSG_Percent * v_fs_near->size();
             j= Rand();
-            if( v_fs_near_CSG->size() <fs_near_CSG_num )
+            if(j <= fs_CSG_Percent && Num_MS.size() <fs_near_CSG_num )
             {
-                if(  j  <=fs_CSG_Percent)
-                {
-                    v_fs_near_CSG->push_back(*inter);
-                }
+                Num_MS.push_back(*inter);
             }
         }
     }
+        sort(Num_MS.begin(), Num_MS.end());
+        its = unique(Num_MS.begin(), Num_MS.end());
+        Num_MS.resize( its - Num_MS.begin() );
 
-    for(vector<int>::iterator inter = v_fs_near_CSG->begin(); inter != v_fs_near_CSG->end(); inter++)
-    {
-        printf("\nfs_near %d", *inter);
-        system("PAUSE");
-    }
+    if( Num_MS.size() < fs_near_CSG_num )
+        goto Search ;
+
+
+
+    v_fs_near_CSG->push_back( Num_MS );
+
+
 };
 
-
-
-double CSG::_Distance ( XYAXIS _Point , XYAXIS Point_ )
+bool CSG::Femto_Use( int BSID , int Group_)
 {
-    double Two_Point_Distance_X , Two_Point_Distance_Y ;
+    if( fsdata[BSID].fs_mode == 1 )
+    {
+        return true ;
+    }
+    else if ( fsdata[BSID].CSG_GROUP == Group_ )
+    {
+        return true ;
+    }
 
-    Two_Point_Distance_X = _Point.x - Point_ .x ;
-    Two_Point_Distance_Y = _Point.y - Point_ .y ;
 
-    return sqrt ( pow(Two_Point_Distance_X , 2)+pow ( Two_Point_Distance_Y , 2) );
+    return false;
 
 };
 

@@ -6,6 +6,7 @@
 
 #include "stdhead.h"
 #include "LocationState.h"
+#include "CSG.h"
 
 
 #define		UNKNOW_STATE		0x0000
@@ -19,6 +20,9 @@
 #define 		LOW_VELOCITY_SERVING_FEMTO		0x0006
 
 using namespace std;
+
+
+
 
 
 struct BSINFO{
@@ -61,7 +65,7 @@ class MobileStationBase: public LocationState, private LinkList
 {
 public:
 
-    MobileStationBase( LinkList* Userlist_, XYAXIS (*BSOxy)[NUM_CELL], FS_INFO (*fsdata__)[FS_NUM], int Permutation__);
+    MobileStationBase( LinkList* Userlist_, XYAXIS (*BSOxy)[NUM_CELL], FS_INFO (*fsdata__)[FS_NUM], int Permutation__,CSG* csg_);
 
     virtual ~MobileStationBase();
 
@@ -87,7 +91,6 @@ protected:
     //return 0 -> #ERROR# msdata = NULL
     virtual int getNeighborFemtoList();
 
-	virtual int UserStateDicision();
 
     /*
       BSID      =>femto是0~1999
@@ -110,36 +113,32 @@ protected:
 
     double NoiseDL(int Permutation, double subcarrierBW);
 
-
-
     MSNODE* msnode;
     XYAXIS (*BSOxy_)[NUM_CELL];
     FS_INFO (*fsdata_)[FS_NUM];
 
 	vector<BSINFO > Macrolist;
     vector<BSINFO > Femtolist;
-
-	double RSSI_ServingBS;
-
-	vector<BSINFO > NbrFemtoRSSI_For_calculateSINR_;//紀錄週遭0.35的所有極微小基地台訊號強度
+    CSG* CSG_;
 
 private:
 
-
-
+    int UserStateDicision();
 
     //POLAXIS  position_polar;
 
     int PermutationMode;
 
     LinkList* UserList;
+
+
 };
 
 
 class MSwithLevelFP : public MobileStationBase,private LinkList{
 
 public:
-	MSwithLevelFP( LinkList* Userlist_, XYAXIS (*BSOxy)[NUM_CELL], FS_INFO (*fsdata__)[FS_NUM], int Permutation__);
+	MSwithLevelFP( LinkList* Userlist_, XYAXIS (*BSOxy)[NUM_CELL], FS_INFO (*fsdata__)[FS_NUM], int Permutation__, CSG* csg_);
 
 	~MSwithLevelFP();
 
@@ -161,36 +160,34 @@ private:
 
 };
 
-
-#define EST_SPEED_BY_FP 0
-
 class MSwithVectorFP:public MobileStationBase, private LinkList {
 
 public:
-	MSwithVectorFP( LinkList* Userlist_, XYAXIS (*BSOxy)[NUM_CELL], FS_INFO (*fsdata__)[FS_NUM], int Permutation__);
+	MSwithVectorFP( LinkList* Userlist_, XYAXIS (*BSOxy)[NUM_CELL], FS_INFO (*fsdata__)[FS_NUM], int Permutation__,CSG* csg_);
 
 	~MSwithVectorFP();
 
 	virtual void UpdateMSINFO( MSNODE* msnode_, double numticktime, double ticktime);
 
-protected:
-	void UpdateFP(double time);
+	vector<int>* FemtoListByFP;
 
+    vector<int>* GetFemtoListByFPrf(){
+        return FemtoListByFP;
+    }
+
+
+protected:
 	int getFemtoListByFP(int length);
 
 	void FemtoScan();
 
 	void optimumFemtoScan();
 
-#if EST_SPEED_BY_FP
-	int UserStateDicision();
-#endif
 private:
-	GenVectorFP  GenVtFP_;
 
-	VectorFP preFP,currFP;
+     GenVectorFP GenVtFP_;
+//     vector<int> FemtoListByFP;
 
-	vector<int> FemtoListByFP;
 
 };
 

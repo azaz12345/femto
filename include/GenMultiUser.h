@@ -9,14 +9,6 @@
 
 struct GenMultiUserParam{
 
-	GenMultiUserParam(int SimuTotalTime,int NumUser,double TickTime,double ScanPeriod,int P):
-	simulationtotaltime(SimuTotalTime),
-	numuser(NumUser),
-	ticktime(TickTime),
-	scanperiod(ScanPeriod),
-	permutation(P)
-	{}
-
 	int simulationtotaltime;
 	int numuser;
 	double ticktime;
@@ -48,7 +40,7 @@ public:
     /*更新某個MS的位置,也就是說只更新msdata中的position*/
     void UpdateOnePosition(XYAXIS xy, MSINFO& currMsdata);
 
-    vector<WayPoint>* getUserPathlist(){ return UserPathlist; };
+    vector<WayPoint>* getUserPathlist(){ return UserPathlist;};
 
 protected:
     /*新增一個使用者*/
@@ -77,8 +69,6 @@ protected:
     {
         return FemtoMode;
     }
-
-
 private:
 
     int NumUser;

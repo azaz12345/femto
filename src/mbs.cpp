@@ -36,11 +36,9 @@
 
 #include "stdhead.h"
 #include "external_parameters.h"
-#include "SimulatorParameter.h"
-#include "GenFingerprintBase.h"
 
 //============================Global Parameters=======================================
-double Density		  = HOUSE_DENSITY;
+double Density		  = 0.9;
 int Num_SCH_per_MS_DL  = 1;             //Max. number of DL sub-channel can be allocated for each MS
 int FS_Sub_channel_num =0;                       //number of subchannels available to Femtocells within a sector
 int Sub_channel_num; //PUSC channelnumber
@@ -57,6 +55,7 @@ long seed_fs_position = 134547324;
 
 double R1=R*(pow(3*K,0.5));  // the distance between co-channel cells depends on reuse factor
 
+VectorFP BSVectorFP[NUM_CELL];
 
 XYAXIS BSOxy[NUM_CELL] =
 {
@@ -75,9 +74,6 @@ XYAXIS BSOxy_MAI[NUM_CELL] =
     {R1*0.866 ,R1*-1.5}, {R1* 0.0  ,R1*-2.0}, {R1*-0.866,R1*-1.5}, {R1*-1.732,R1*-1.0}, //12--15
     {R1*-1.732,R1*-0.0}, {R1*-1.732,R1*1.0 }, {R1*-0.866,R1*1.5}
 };                      //16--18
-
-
-VectorFP BSVectorFP[NUM_CELL];
 
 
 //-----Adjacent cell identification for wrap around-----//

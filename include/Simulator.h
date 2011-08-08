@@ -3,7 +3,8 @@
 
 #include "GenMultiUser.h"
 #include "MobileStation.h"
-
+#include "CSG.h"
+#include "energy.h"
 
 class Simulator
 {
@@ -13,13 +14,24 @@ class Simulator
 
 
         void Start();
+
+        vector < vector<int>* >* FemtoListByFP_v;
+
+
     protected:
+
+
+
     private:
-	LinkList USERLIST;
+
     GenMultiUserParam P1;
-    GenMultiUser MultiUser;
+    GenMultiUser* MultiUser;
+
+    CSG* _CSG ;
+    vector<MSNODE*>* VQ;
 
 
+    LinkList USERLIST;
 
 
 };

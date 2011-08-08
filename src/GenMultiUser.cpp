@@ -1,13 +1,13 @@
 #include "GenMultiUser.h"
 #include "external_parameters.h"
 #include "stdhead.h"
-#include "MacroBS.h"
+#include "TrafficModel.h"
 #include <vector>
 
 #define TICKTIME 0.5
 
 GenMultiUser::GenMultiUser(LinkList* Userlist_, int Num, int Time, int Permutation):
-    PathGenerator(Time,TICKTIME, &BSOxy_MAI),
+    PathGenerator(Time,TICKTIME,&BSOxy_MAI),
     FemtoMode(FEMTOMODE),
     NumUser(Num),
     SimulationTotalTime(Time),
@@ -41,9 +41,9 @@ GenMultiUser::GenMultiUser(LinkList* Userlist_, int Num, int Time, int Permutati
     /*************************建立各個使用者的移動路徑並存起來*******************************/
     CreatePathForAll(NumUser);
 
-    /******************************建立大基地台的VectorFP****************************************/
-	MacroBS MBS;
-	MBS.buildAllFP();
+    /******************************************************************************************/
+
+    /*********************************************************************************************/
     //ctor
 
 }
@@ -75,23 +75,19 @@ GenMultiUser::GenMultiUser(LinkList* Userlist_, struct GenMultiUserParam& param)
         UserList->DL_FS_sub_channel[i] = new int[FS_Sub_channel_num];
 
 	/*******************************************************/
-	printf("777777777777777\n");
-	UserList->DL_sub_channel_initial();
-	printf("8888888888888888\n");
+    UserList->DL_sub_channel_initial();
     UserList->sys_setup();
-	printf("99999999999999\n");
+
     //利用Userlist來產生Femto的位置(LinkList此物件有產生Femtocell位置的功能也就是fs_position)
     //建立的位置會存於fsdata 這個是一個extern型的變數
 
     UserList->fs_position(param.permutation);//Permutation->PUSC or FUSC
-
     //根據輸入的數量來產生MS
     CreateMultiUser(NumUser);
     /*************************建立各個使用者的移動路徑並存起來*******************************/
     CreatePathForAll(NumUser);
 
-	MacroBS MBS;
-	MBS.buildAllFP();
+
 
 
 	DecideScanStartTimForAll(param.scanperiod,param.ticktime);
@@ -100,27 +96,6 @@ GenMultiUser::GenMultiUser(LinkList* Userlist_, struct GenMultiUserParam& param)
 
 GenMultiUser::~GenMultiUser()
 {
-
-	delete [] UserPathlist;
-
-	for(int i = 0; i < NUM_SECTOR; i++)
-		delete [] UserList->DL_FS_sub_channel[i];
-
-	delete [] UserList->DL_FS_sub_channel;
-
-	for(int i = 0; i < NUM_CELL; i++)
-    {
-        for(int j = 0; j < NUM_SECTOR; j++)
-		delete [] UserList->DL_sub_channel_sum[i][j];
-    }
-
-    for(int i = 0; i < NUM_CELL; i++)
-        delete [] UserList->DL_sub_channel_sum[i];
-
-	delete [] UserList->DL_sub_channel_sum;
-
-
-
     //dtor
 }
 
@@ -185,9 +160,9 @@ GenMultiUser::UpdateAllPosition(MSNODE*& first, int i = 0){
 
 
     }
-	SimulationTime += TICKTIME;
+    SimulationTime += TICKTIME;
 
-    delete [] arrayMSNODE;
+    delete arrayMSNODE;
 //end for openMP
 /*
     for(int j=0; currMSNODE != NULL;j++){
@@ -216,7 +191,6 @@ GenMultiUser::UpdateAllPosition(MSNODE*& first, int i = 0){
 void
 GenMultiUser::UpdateOnePosition(XYAXIS xy, MSINFO& currMsdata)
 {
-	currMsdata.preposition = currMsdata.position;
     currMsdata.position = xy;
 
 
@@ -233,7 +207,7 @@ GenMultiUser::addUser(double t_new, double traffic_load, int Femto_mode)
 double
 GenMultiUser::CreateMultiUser(int Num)
 {
-
+    srand(time(NULL));
     for(int i=0; i<Num; i++)
     {
 #if DEBUG
@@ -242,15 +216,13 @@ GenMultiUser::CreateMultiUser(int Num)
         addUser(0.0, 1, FemtoMode);//第1跟2個參數完全沒意義
     }
 
-	//initial MS ID
-	MSNODE* currMS = UserList->pFirst;
+    MSNODE* currMS = UserList->pFirst;
 
 	for( int j=0; currMS != NULL; j++){
 		currMS->msdata.ID = j;
+		currMS->msdata.CSG_GROUP = rand()%99 + 1 ;
 		currMS = currMS->pNext;
 	}
-
-
 }
 
 /*為每個使用者建立自己的移動路徑
@@ -259,7 +231,6 @@ GenMultiUser::CreateMultiUser(int Num)
 void
 GenMultiUser::CreatePathForAll(int Num)
 {
-
     UserPathlist = new vector<WayPoint>[Num];
     //UserList->pFirst->msdata.position;
     MSNODE* currMSNODE = UserList->pFirst;
@@ -268,22 +239,13 @@ GenMultiUser::CreatePathForAll(int Num)
         //參數1是用來存路徑的
         //參數2是路徑的起始點(也就是初始化使用者時一開始給定的位置)
         //參數3是速度(此速度未來會加入根據使用者的類型來做對應)
-        CreateNewPath(&UserPathlist[i],currMSNODE->msdata.position,5);
+//        CreateNewPath(&UserPathlist[i],currMSNODE->msdata.position,5);
+
+        CreateNewPath(&UserPathlist[i],currMSNODE,5);
 
         printf("使用者%d路徑已建立完成\n",i);
-#if 0
-        for(vector<WayPoint>::iterator it = UserPathlist[i].begin(); it != UserPathlist[i].end(); it++)
-        {
-
-            printf("使用者%d座標:(%f,%f)\n", i, it->xy.x, it->xy.y);
-
-        }
-
-#endif
-
         currMSNODE = currMSNODE->pNext;
     }
-
 
 }
 
@@ -294,6 +256,8 @@ GenMultiUser::DecideScanStartTimForAll(double scanperiod, double ticktime){
 
 	MSNODE* currMSNODE = UserList->pFirst;
 
+//	TrafficModel TX;
+
 	while(currMSNODE!=0){
 
 
@@ -301,15 +265,15 @@ GenMultiUser::DecideScanStartTimForAll(double scanperiod, double ticktime){
 		currMSNODE->msdata.ScanStartTickTime = ((int)(Rand()*(scanperiod/ticktime)))%((int)(scanperiod/ticktime));
 
 		/*暫時加在這速度*/
-		currMSNODE->msdata.speed =5;
+		currMSNODE->msdata.speed = 5;
 
 //		printf("ScanStartTime:%f\n",currMSNODE->msdata.ScanStartTickTime);
 //		system("PAUSE");
-
+//        currMSNODE->msdata.Call_Interval =TX.ExpRand(240);
 		currMSNODE = currMSNODE->pNext;
+
+
 	}
-
-
 
 
 }

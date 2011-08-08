@@ -35,6 +35,7 @@
  */
 
 #include "stdhead.h"
+#include "tool.h"
 
 //*******************************************//
 //   exponential random number generators    //
@@ -82,6 +83,11 @@ double Rand(long *seed)
     *seed=(long) x;
     num=x*C;
     return num;
+}
+
+double ExpRand(double mean,  long* seed_session)
+{
+    return (-mean*log(Rand()));
 }
 
 //   Macro cell:
@@ -167,3 +173,9 @@ double Session_rand(double mean,  long *seed_session)
 {
     return (-mean*log(Rand(seed_session)));
 }
+
+
+
+
+
+

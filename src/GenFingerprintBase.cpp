@@ -313,9 +313,8 @@ GenVectorFP::EstVelocityState(VectorFP& currM, VectorFP& preM, double scanRange,
 	double Sdifference1 =0;
 	double Sdifference2 = 0;
 
-	extern Record ReEstAngle;
 	double Cosine = EstCosine(currM , preM);
-	ReEstAngle.InsertData((acos(Cosine)/PI)*180*1000);
+
 
 	int found=1;
 	for(vector<VectorElement>::iterator itPreM=preM.Elements.begin(); itPreM!=preM.Elements.end(); itPreM++)
@@ -356,11 +355,7 @@ GenVectorFP::EstVelocityState(VectorFP& currM, VectorFP& preM, double scanRange,
 
 	Sdifference3 = sqrt( Sdifference3_square);
 	/////////////////Analysis///////////////////////
-	extern double speedTotal,speedCount;
-	extern Record ReSpeed;
-	ReSpeed.InsertData( 1000*(Sdifference3/( currM.time - preM.time )) );
-	speedTotal += Sdifference3/( currM.time - preM.time );
-	speedCount+=1;
+
 
 	Sdifference3 = 60.26+38*log10(Sdifference3/( currM.time - preM.time ))+21*log10(f_carrier);
 	//Sdifference3 = 60.26+38*log10(Sdifference3)+21*log10(f_carrier);
@@ -372,8 +367,7 @@ GenVectorFP::EstVelocityState(VectorFP& currM, VectorFP& preM, double scanRange,
 
 	//printf("pre_Sdifference3:%f\nSdifference3:%f\nVelocityThreshold_PathLoss:%f\n", pow(Sdifference1,2) + pow(Sdifference2,2) -2*Sdifference1*Sdifference2*Cosine,Sdifference3,VelocityThreshold_PathLoss);
 	//system("pause");
-	extern Record ReAlpha;
-	ReAlpha.InsertData(100*(Sdifference3/VelocityThreshold_PathLoss));
+
 
 	//if(Sdifference3/( currM.time - preM.time ) < 1.47*0.001) return 2;
 	if(Sdifference3 < 0.50*VelocityThreshold_PathLoss) return 2;

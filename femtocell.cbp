@@ -14,8 +14,7 @@
 				<Compiler>
 					<Add option="-g" />
 					<Add option="-fopenmp" />
-					<Add option="-std=gnu++0x" />
-					<Add directory=".\include" />
+					<Add directory="include" />
 				</Compiler>
 				<Linker>
 					<Add option="-lpthread" />
@@ -28,22 +27,20 @@
 				<Option type="1" />
 				<Option compiler="gcc" />
 				<Compiler>
-					<Add directory=".\include" />
+					<Add option="-O2" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
-					<Add option="-lpthread" />
-					<Add option="-lgomp" />
 				</Linker>
 			</Target>
 		</Build>
 		<Compiler>
-			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 			<Add option="-fopenmp" />
 		</Compiler>
 		<Unit filename="include\CSG.h" />
 		<Unit filename="include\DataChannelAssignmentDL.h" />
+		<Unit filename="include\EventQueue.h" />
 		<Unit filename="include\GenFingerprintBase.h" />
 		<Unit filename="include\GenMultiUser.h" />
 		<Unit filename="include\LocationState.h" />
@@ -53,12 +50,16 @@
 		<Unit filename="include\Record.h" />
 		<Unit filename="include\Simulator.h" />
 		<Unit filename="include\SimulatorParameter.h" />
+		<Unit filename="include\TrafficModel.h" />
 		<Unit filename="include\channel_allocation.h" />
+		<Unit filename="include\energy.h" />
 		<Unit filename="include\external_parameters.h" />
 		<Unit filename="include\fbs.h" />
 		<Unit filename="include\stdhead.h" />
+		<Unit filename="include\tool.h" />
 		<Unit filename="src\CSG.cpp" />
 		<Unit filename="src\DataChannelAssignmentDL.cpp" />
+		<Unit filename="src\EventQueue.cpp" />
 		<Unit filename="src\GenFingerprintBase.cpp" />
 		<Unit filename="src\GenMultiUser.cpp" />
 		<Unit filename="src\LocationState.cpp" />
@@ -69,8 +70,10 @@
 		<Unit filename="src\PathGenerator.cpp" />
 		<Unit filename="src\Record.cpp" />
 		<Unit filename="src\Simulator.cpp" />
+		<Unit filename="src\TrafficModel.cpp" />
 		<Unit filename="src\channel_allocation.cpp" />
 		<Unit filename="src\class_oper.cpp" />
+		<Unit filename="src\energy.cpp" />
 		<Unit filename="src\fbs.cpp" />
 		<Unit filename="src\main.cpp" />
 		<Unit filename="src\mbs.cpp" />

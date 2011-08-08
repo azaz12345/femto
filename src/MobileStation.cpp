@@ -8,20 +8,22 @@
 #include "MobileStation.h"
 #include "stdhead.h"
 #include "external_parameters.h"
-
-#include "GenFingerprintBase.h"
-
 #include "Record.h"
 
+#include "GenFingerprintBase.h"
+#include "CSG.h"
 #include <omp.h>
 
 
-MobileStationBase::MobileStationBase( LinkList* Userlist_, XYAXIS (*BSOxy)[NUM_CELL], FS_INFO (*fsdata__)[FS_NUM], int Permutation__):
+
+
+
+MobileStationBase::MobileStationBase( LinkList* Userlist_, XYAXIS (*BSOxy)[NUM_CELL], FS_INFO (*fsdata__)[FS_NUM], int Permutation__,CSG* csg_):
 	BSOxy_(BSOxy),
 	fsdata_(fsdata__),
 	PermutationMode(Permutation__),
 	UserList(Userlist_),
-	RSSI_ServingBS(0)
+	CSG_(csg_)
 {
 
     //ctor
@@ -32,8 +34,6 @@ MobileStationBase::~MobileStationBase()
 
 	Macrolist.clear();
 	Femtolist.clear();
-
-
 
     //dtor
 }
@@ -67,16 +67,10 @@ MobileStationBase::UpdateMSINFO(MSNODE* msnode_, double numticktime, double tick
 
 /*********************加快程式運作*****************************/
 
-	if(msnode->msdata.femto_mode==0)			RSSI_ServingBS=MacroRSSI(msnode->msdata.ssector,msnode->msdata.scell,1);
-	else if(msnode->msdata.femto_mode==1)	RSSI_ServingBS=FemtoRSSI(msnode->msdata.sFS,2);
 
-
-
-
-///**********************************************************/
 /***********************掃描&換手決策***************************/
 	//Serving is macro & Period scan
-	if( ( (int)(numticktime - msnode->msdata.ScanStartTickTime)%((int)(msnode->msdata.ScanPeriod/ticktime))==0&&msnode->msdata.femto_mode==0 ))
+	if( ( (int)(numticktime - msnode->msdata.ScanStartTickTime)%((int)(msnode->msdata.ScanPeriod/ticktime))==0 && msnode->msdata.femto_mode==0 ))
 	{
 
 		//printf("Serving:Macro\tPeriod Scan\n");
@@ -129,40 +123,27 @@ MobileStationBase::UpdateMSINFO(MSNODE* msnode_, double numticktime, double tick
 
 	if((msnode->msdata.femto_mode==0) && (MacroRSSI(msnode->msdata.ssector,msnode->msdata.scell,1) < -100))
 	{
-		printf("ServingMacro:%d\tRSSI%f\tSINR:%f\n",msnode->msdata.scell,MacroRSSI(msnode->msdata.ssector,msnode->msdata.scell,1),CrtChMacroSINR(msnode->msdata.ssector,msnode->msdata.scell,1));
-		printf("MS%d\tBlocking!!Position:(%f,%f)\t%s\tBlock %d\n",msnode->msdata.ID,msnode->msdata.position.x,msnode->msdata.position.y,IsOnStreet(msnode->msdata.position)?"街道":"房子",WhichBlock(msnode->msdata.position));
-		//if(!IsOnStreet(msnode->msdata.position)){system("pause");};
-		extern int outNum;
-		outNum++;
+		//printf("Outage!!!!!%f\n",outage);
 		outage++;
 	}
 	else if( (msnode->msdata.femto_mode==1) && (FemtoRSSI(msnode->msdata.sFS,2) < -100))
 	{
-		printf("ServingFemto:%d\tRSSI%f\tSINR:%f\n",msnode->msdata.sFS,FemtoRSSI(msnode->msdata.sFS,2),CrtChFemtoSINR(msnode->msdata.sFS,2));
-		printf("MS%d\tBlocking!!Position:(%f,%f)\t%s\tBlock %d\n",msnode->msdata.ID,msnode->msdata.position.x,msnode->msdata.position.y,IsOnStreet(msnode->msdata.position)?"街道":"房子",WhichBlock(msnode->msdata.position));
-		//if(!IsOnStreet(msnode->msdata.position)){system("pause");};
-		extern int outNum;
-		outNum++;
+		//printf("Outage!!!!!%f\n",outage);
 		outage++;
 	}
-	if((msnode->msdata.femto_mode==0) && (RSSI_ServingBS > -100))
+
+    if((msnode->msdata.femto_mode==0) && (MacroRSSI(msnode->msdata.ssector,msnode->msdata.scell,1) >= -100))
 	{
-		extern int macroNum;
-		macroNum++;
+		extern int macroNum_;
+		macroNum_++;
 	}
-	if( (msnode->msdata.femto_mode==1) && (RSSI_ServingBS > -100))
+	if( (msnode->msdata.femto_mode==1) && (FemtoRSSI(msnode->msdata.sFS,2) >= -100))
 	{
-		extern int femtoNum;
-		femtoNum++;
+		extern int femtoNum_;
+		femtoNum_++;
 	}
 
-	///記錄室內外比
-	extern double TotalInOutdoorUser;
-	TotalInOutdoorUser++;
-	if(IsOnStreet(msnode->msdata.position)){
-		extern double NumOutdoorUser;
-		NumOutdoorUser++;
-	}
+
 
     //msdata
 
@@ -212,7 +193,7 @@ MobileStationBase::MacroScan()
         mbs.SECTOR		= BEST_SECTORID_;
         mbs.RSSI			= msnode->msdata.RSSI[i];
 
-        if(mbs.RSSI>=-100){
+        if(mbs.RSSI>-100){
 			Macrolist.push_back( mbs);
         }
 
@@ -262,7 +243,7 @@ void MobileStationBase::FemtoScan(){
         fbs.BSTYPE	= 2;
         fbs.RSSI		= msnode->msdata.FS_RSSI[i];
 
-		if(fbs.RSSI>=-100){
+		if(fbs.RSSI>-100){
 			Femtolist.push_back( fbs);
 		}
 
@@ -275,7 +256,7 @@ void MobileStationBase::FemtoScan(){
 
 void
 MobileStationBase::UpdateFP(){
-		//printf("Upading FP\n");
+
 		GenLevelFP<FP_LEVEL > GenLvFp_(-60.0,-100.0);
 		msnode->msdata.LevelFingerprint		= GenLvFp_.buildFP(msnode->msdata.RSSI);
 
@@ -308,7 +289,7 @@ MobileStationBase::UpdateFP(){
 			}
 			printf("\n");
 			printf("%s\n",IsOnStreet(msnode->msdata.position)?"街道":"房屋");
-			if(msnode->msdata.VectorFingerprint.Elements[0].ElementValue==-100)
+			if(msnode->msdata.VectorFingerprint.Elements[0].ElementValue==-120)
 			system("pause");
 		//}
 */
@@ -368,8 +349,7 @@ MobileStationBase::Handover(BSINFO& TargetBS)
 		return false;
 
 	}
-	extern Record ReHandoverTimes;
-	ReHandoverTimes.InsertData(1);
+
 
     return true;
 }
@@ -392,9 +372,9 @@ MobileStationBase::DepartureServingCell(){
 
 	}else if(msnode->msdata.femto_mode==1){
 
-		//int ChIndex = (*fsdata_)[msnode->msdata.sFS].RadioBand + msnode->msdata.sub_channel_index;
+		int ChIndex = (*fsdata_)[msnode->msdata.sFS].RadioBand + msnode->msdata.sub_channel_index;
 
-		//(*fsdata_)[msnode->msdata.sFS].DataChannel[ChIndex] = 0;
+		(*fsdata_)[msnode->msdata.sFS].DataChannel[ChIndex] = 0;
 		//將當前使用人數減1
 		(*fsdata_)[msnode->msdata.sFS].UserInfo.CurrNumUser -= 1;
 
@@ -413,11 +393,19 @@ return BSTYPE =0, the system has no suitable BS to be used for MS.
 */
 BSINFO
 MobileStationBase::DecideTargetCell( int BSType){
-	//int i=0;
+
+    CSG* _CSG = CSG_;
+    extern int LowSinr;
+    extern int MacroLowSinr;
+    extern int FemtoLowSinr;
+    extern int MacroNum ;
+    extern int FemtoNum ;
+
+
 	if(BSType==1 && !Macrolist.empty()){
 		for(vector<BSINFO>::iterator macroit=Macrolist.begin(); macroit!=Macrolist.end(); macroit++){
-			//printf("%d: BS %d\tsector %d\tRSSI:%f",i++,macroit->BSID,macroit->SECTOR,macroit->RSSI);
-			//system("pause");
+
+            MacroNum +=1 ;
 			int sector_ = (*macroit).SECTOR;
 
 			//RSSI sensitvity
@@ -426,7 +414,8 @@ MobileStationBase::DecideTargetCell( int BSType){
 			}
 			//SINR -6dB是最低限度
 			if((int)CrtChMacroSINR( sector_, (*macroit).BSID, BSType) <-6){
-
+			    MacroLowSinr +=1 ;
+			    LowSinr +=1 ;
 				continue;
 			}
 
@@ -450,31 +439,39 @@ MobileStationBase::DecideTargetCell( int BSType){
 	//BSType==2
 	}else if(BSType == 2 && !Femtolist.empty()){
 
-		double SINR;
-		int i=0;
-
 		for(vector<BSINFO>::iterator femtoit=Femtolist.begin(); femtoit!=Femtolist.end(); femtoit++){
-			//printf("%d: FBS %d\tRSSI:%f\t%d\n",i++,femtoit->BSID,femtoit->RSSI,Femtolist.size());
+
+            FemtoNum +=1 ;
 			//RSSI sensitvity
+/*
+			printf("\n(*femtoit).RSSI)%f",(*femtoit).RSSI);
+			printf("\nCrtChFemtoSINR( (*femtoit).BSID, BSType )%f",CrtChFemtoSINR( (*femtoit).BSID, BSType ));
+			system("pause");
+*/
+
 			if((int)((*femtoit).RSSI) < -100){
 				continue;
 			}
 			//SINR -6dB是最低限度
-			if((SINR=(int)CrtChFemtoSINR( (*femtoit).BSID, BSType )) <-6){
-				//printf("#######femto SINR:%f\n",SINR);
+			if((int)CrtChFemtoSINR( (*femtoit).BSID, BSType ) <-6){
+			    FemtoLowSinr +=1 ;
+			    LowSinr +=1 ;
 				continue;
 			}
 
+			//OSG/CSG
+			if ( _CSG->Femto_Use((*femtoit).BSID, msnode->msdata.CSG_GROUP)== false){
+                continue;
+			}
 			//檢查人數上限
 			if( (*fsdata_)[(*femtoit).BSID].UserInfo.CurrNumUser >= (*fsdata_)[(*femtoit).BSID].UserInfo.TotalNumUser){
 
 				continue;
 			}
-			//system("pause");
+
+
 			return (*femtoit);
 		}
-
-
 	}
 
 	BSINFO noTargetCell;
@@ -524,7 +521,7 @@ MobileStationBase::HandoverDecision()
 				return 0;
 			}
 
-			double ServingMarcoRSSI = RSSI_ServingBS;
+			double ServingMarcoRSSI = MacroRSSI(msnode->msdata.ssector,msnode->msdata.scell,1);
 			double hysteressis = 2;
 
 			if( TargetCell.RSSI <= ( ServingMarcoRSSI + hysteressis) )
@@ -568,7 +565,7 @@ MobileStationBase::HandoverDecision()
 						return 2;
 					}
 
-					double ServingMarcoRSSI = RSSI_ServingBS;
+					double ServingMarcoRSSI = MacroRSSI(msnode->msdata.ssector,msnode->msdata.scell,1);
 					double hysteressis = 2;
 
 					/*There are no suitable femto,so macro-to-macro handover*/
@@ -590,21 +587,12 @@ MobileStationBase::HandoverDecision()
 			//There are a suitable femto,so macro-to-femto handover
 			if(TargetCell.RSSI <= -95)
 			{
-				double ServingMarcoRSSI = RSSI_ServingBS;
-				double hysteressis = 2;
-				if(TargetCell.RSSI > ServingMarcoRSSI+hysteressis)
-				{
-					DepartureServingCell();
-					Handover(TargetCell);
-					return 5;
-				}//by azaz12345 2011/6/6
-
 				//printf("TargetCell.RSSI <= -95\n");
 				return 8;
 			}
 
 
-			//double ServingMarcoRSSI = MacroRSSI(msnode->msdata.ssector,msnode->msdata.scell,1);
+			double ServingMarcoRSSI = MacroRSSI(msnode->msdata.ssector,msnode->msdata.scell,1);
 			//printf("原ServingCellID:%d\tSector:%d\n",msnode->msdata.scell,msnode->msdata.ssector);
 			//printf("TargetCell.RSSI:%f >= -95 ( ServingMarcoRSSI:%f )\n", TargetCell.RSSI, ServingMarcoRSSI);
 			DepartureServingCell();
@@ -631,8 +619,8 @@ MobileStationBase::HandoverDecision()
 					//system("PAUSE");
 					return 2;
 				}
+                double ServingFemtoRSSI = FemtoRSSI(msnode->msdata.sFS,2);
 
-				double ServingFemtoRSSI = RSSI_ServingBS;
 				double hysteressis = 2;
 
 
@@ -651,7 +639,7 @@ MobileStationBase::HandoverDecision()
 
 			}
 
-			double ServingFemtoRSSI = RSSI_ServingBS;
+			double ServingFemtoRSSI = FemtoRSSI(msnode->msdata.sFS,2);
 			double hysteressis = 2;
 
 			if(TargetCell.RSSI <= (ServingFemtoRSSI+hysteressis))
@@ -695,6 +683,7 @@ MobileStationBase::HandoverDecision()
 double
 MobileStationBase::CrtChMacroSINR(int SectorID,int BSID,int BSType){
 
+    extern Record Re;
     double SINR_        = 0;
 
     double mWInterference_m_    = 0;
@@ -711,13 +700,14 @@ MobileStationBase::CrtChMacroSINR(int SectorID,int BSID,int BSType){
         for( int i = 0; i <  NUM_CELL; i++){
             for(int j=0; j < 3; j++){//sector0~2
 //                if( i != BSID && j == SectorID ){
-                if( (i == BSID && j != SectorID) || (i != BSID) ){
+                if((i == BSID && j != SectorID ) || i !=SectorID )
+                {
                     double dBInterference_m_= 0;       //marco
 
                     dBInterference_m_ = MacroRSSI(j,i,1);
                     mWInterference_m_ = pow(10,dBInterference_m_/10);
-
                 }
+  //            }
 
             }
         }
@@ -730,21 +720,16 @@ MobileStationBase::CrtChMacroSINR(int SectorID,int BSID,int BSType){
         但現實不太可能使用位置  極有可能利用訊號強度來決定(所以此部分尚需根據情況修改)
         */
 
-        for(int i = 0; i < msnode->msdata.fs_near_num; i++){
-
-//            if( (*fsdata_)[msnode->msdata.FS_NEAR[i]].RadioBand == SectorID){
+        for(int i = 0; i < msnode->msdata.fs_near_num; i++)
+        if( (*fsdata_)[msnode->msdata.FS_NEAR[i]].Power_State == true )
+        {
+//           if( (*fsdata_)[msnode->msdata.FS_NEAR[i]].RadioBand == SectorID){
                 double dBInterference_f_= 0;       //femto
-/*
-				vector<BSINFO >::iterator  femtoit = find_if(	NbrFemtoRSSI_For_calculateSINR_.begin(),
-																						NbrFemtoRSSI_For_calculateSINR_.end(),
-																						findBSID(msnode->msdata.FS_NEAR[i])
-																					);
-*/
 
-                dBInterference_f_= NbrFemtoRSSI_For_calculateSINR_[i].RSSI;//FemtoRSSI(msnode->msdata.FS_NEAR[i],2);//femtoit->RSSI;
+                dBInterference_f_= FemtoRSSI(msnode->msdata.FS_NEAR[i],2);
 
                 mWInterference_f_+= pow(10,dBInterference_f_/10);
- //           }
+//           }
 
         }
 
@@ -757,6 +742,18 @@ MobileStationBase::CrtChMacroSINR(int SectorID,int BSID,int BSType){
 
 
         SINR_ = MacroRSSI(SectorID, BSID, BSType) - dBInterference_all_ - MS_Nosie_figure;
+
+        extern int ToLowSinr;
+/*
+        if( SINR_ < -6 )
+        {
+            ToLowSinr +=1;
+        }
+*/
+    extern Record ReMacroSINR;
+    extern Record ReALLSINR;
+    ReMacroSINR.InsertData(SINR_);
+    ReALLSINR.InsertData(SINR_);
 
     return SINR_;
 }
@@ -781,7 +778,8 @@ MobileStationBase::CrtChFemtoSINR(int BSID, int BSType){
     */
 
     for( int i = 0; i <  NUM_CELL; i++){
-        for(int j=0; j < 3; j++){//sector0~2
+        for(int j=0; j < 3; j++)//sector0~2
+        {
 //            if( (*fsdata_)[BSID].RadioBand == j ){
 
                     double dBInterference_m_= 0;       //marco
@@ -789,7 +787,7 @@ MobileStationBase::CrtChFemtoSINR(int BSID, int BSType){
                     dBInterference_m_ = MacroRSSI(j,i,1);
                     mWInterference_m_ += pow(10,dBInterference_m_/10);
 
- //           }
+//            }
 
         }
     }
@@ -802,34 +800,26 @@ MobileStationBase::CrtChFemtoSINR(int BSID, int BSType){
     以及防止計算到自己的RSSI
     */
 
-    for(int i = 0; i < msnode->msdata.fs_near_num; i++){
+    for(int i = 0; i < msnode->msdata.fs_near_num; i++)
+    if( (*fsdata_)[msnode->msdata.FS_NEAR[i]].Power_State == true )
+    {
 
-
-//		if((*fsdata_)[msnode->msdata.FS_NEAR[i]].RadioBand != (*fsdata_)[BSID].RadioBand)
-//			continue;
-
+/*
+    	if((*fsdata_)[msnode->msdata.FS_NEAR[i]].RadioBand != (*fsdata_)[BSID].RadioBand)
+			continue;
+*/
 		if(msnode->msdata.FS_NEAR[i]==BSID)
 			continue;
 
 
 		double dBInterference_f_= 0;       //femto
 
-/*
-		vector<BSINFO >::iterator  femtoit = find_if(	NbrFemtoRSSI_For_calculateSINR_.begin(),
-																				NbrFemtoRSSI_For_calculateSINR_.end(),
-																				findBSID(msnode->msdata.FS_NEAR[i])
-																			);
-*/
-		dBInterference_f_ = NbrFemtoRSSI_For_calculateSINR_[i].RSSI;//FemtoRSSI(msnode->msdata.FS_NEAR[i],BSType);//femtoit->RSSI;
-
+		dBInterference_f_ = FemtoRSSI(msnode->msdata.FS_NEAR[i],BSType);
 
 		mWInterference_f_ += pow(10,dBInterference_f_/10);
 
 
     }
-
-
-
 
     //把femto跟marco的interference term(mW)相加起來
     mWInterference_all_ = mWInterference_m_ + mWInterference_f_ + pow(10,NoiseDL(0, A_subcarrier_frequency)/10);
@@ -840,7 +830,17 @@ MobileStationBase::CrtChFemtoSINR(int BSID, int BSType){
 
     SINR_ = FemtoRSSI(BSID, BSType) - dBInterference_all_ - MS_Nosie_figure;
 
+    extern int ToLowSinr;
 
+    if( SINR_ < -6 )
+    {
+        ToLowSinr +=1;
+    }
+
+    extern Record ReFemtoSINR;
+    extern Record ReALLSINR;
+    ReFemtoSINR.InsertData(SINR_);
+    ReALLSINR.InsertData(SINR_);
 
     return SINR_;
 }
@@ -855,7 +855,7 @@ MobileStationBase::FemtoRSSI(int BSID,int BSType){
         double PathLoss_;
         PathLoss_ = PathLoss( BSID, BSType);
 
-        RSSI_ = (*fsdata_)[BSID].FS_DL_EIRP - PathLoss_ ;//- 10*log10((float)All_carriers);//+ 10*log10(30.0) - 10*log10(2.0);	//全向型天線
+        RSSI_ = (*fsdata_)[BSID].FS_DL_EIRP - PathLoss_; //- 10*log10((float)All_carriers)+ 10*log10(30.0) - 10*log10(2.0);	//全向型天線
 
     return RSSI_;
 }
@@ -887,7 +887,6 @@ MobileStationBase::MacroRSSI(int SectorID,int BSID,int BSType){
         PathLoss_ = PathLoss( BSID, BSType);
 
         RSSI_ = Max_DL_EIRP_ + AntennaGain_ - PathLoss_ ;//- 10*log10((float)All_carriers);
-		//RSSI_ = Max_DL_EIRP_ - PathLoss_ - 10*log10((float)All_carriers);
 
        //printf("PathLoss:%f\nBSID:%d\tSectorID:%d\tBSTYPE:%d\tAntennaGain_:%f\n",PathLoss_,BSID,SectorID,BSType,AntennaGain_);
         //printf("(*BSOxy_)[BSID]:(%f,%f)",(*BSOxy_)[BSID].x,(*BSOxy_)[BSID].y);
@@ -938,8 +937,6 @@ MobileStationBase::getNeighborFemtoList(){
 
     int currBaseBlock = WhichBlock(msnode->msdata.position);
     int FsNearNum = 0;
-	//printf("MS(%f,%f) in BLOCK%d\n",msnode->msdata.position.x,msnode->msdata.position.y,WhichBlock(msnode->msdata.position));
-
 
     for(int i = 0; i <= 2; i++){
         for(int j = 11; j <= 13; j++){
@@ -953,23 +950,12 @@ MobileStationBase::getNeighborFemtoList(){
                     FemtoInArray < BLOCK[currBlock].FS_num_length;
                     FemtoInArray++ )
                 {
-					//printf("FS%d(%f,%f) in BLOCK%d\n",BLOCK[currBlock].FS_num[FemtoInArray],fsdata[BLOCK[currBlock].FS_num[FemtoInArray]].position.x,fsdata[BLOCK[currBlock].FS_num[FemtoInArray]].position.y,WhichBlock(fsdata[BLOCK[currBlock].FS_num[FemtoInArray]].position));system("pause");
-
                     double distance = msnode->msdata.distance(fsdata[BLOCK[currBlock].FS_num[FemtoInArray]].position,
                                                        msnode->msdata.position);
-                    if(distance <= 0.35){
+                    if(distance < 0.35){
 
                         msnode->msdata.FS_NEAR[FsNearNum] = BLOCK[currBlock].FS_num[FemtoInArray];
                         FsNearNum++;
-
-                        BSINFO tmpFemto;
-                        tmpFemto.BSID = BLOCK[currBlock].FS_num[FemtoInArray];
-                        tmpFemto.BSTYPE = 2;
-                        tmpFemto.RSSI = FemtoRSSI(BLOCK[currBlock].FS_num[FemtoInArray],2);
-
-                        NbrFemtoRSSI_For_calculateSINR_.push_back(tmpFemto);
-
-
                     }//end of if(distance < 0.35)
 
                 }
@@ -979,10 +965,6 @@ MobileStationBase::getNeighborFemtoList(){
         }
         msnode->msdata.fs_near_num = FsNearNum;
     }
-
-	extern Record ReListLength;
-	ReListLength.InsertData(FsNearNum);
-	//printf("List length:%d",FsNearNum);
 
     return FsNearNum;
 }
@@ -1021,7 +1003,6 @@ MobileStationBase::UserStateDicision(){
     int ServingCellType = msnode->msdata.femto_mode;
     double MSVelocity = msnode->msdata.speed;
 
-
     if( ServingCellType==0 && MSVelocity >= 20)
     {
 		return HIGH_VELOCITY_SERVING_MACRO;
@@ -1046,3 +1027,4 @@ MobileStationBase::UserStateDicision(){
 	return UNKNOW_STATE;
 
 }
+
