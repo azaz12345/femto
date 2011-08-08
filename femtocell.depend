@@ -1,0 +1,257 @@
+# depslib dependency file v1.0
+1290680017 source:c:\users\1\desktop\20101116_133\femtocell\channel_allocation.cpp
+	"stdhead.h"
+	"channel_allocation.h"
+	"external_parameters.h"
+
+1290680017 c:\users\1\desktop\20101116_133\femtocell\stdhead.h
+	"fbs.h"
+	<stdio.h>
+	<iostream>
+	<iomanip>
+	<fstream>
+	<math.h>
+	<time.h>
+	<stdlib.h>
+	<valarray>
+
+1290680017 c:\users\1\desktop\20101116_133\femtocell\fbs.h
+
+1290680017 c:\users\1\desktop\20101116_133\femtocell\channel_allocation.h
+
+1290680017 c:\users\1\desktop\20101116_133\femtocell\external_parameters.h
+	"stdhead.h"
+
+1290680017 source:c:\users\1\desktop\20101116_133\femtocell\class_oper.cpp
+	"stdhead.h"
+	"external_parameters.h"
+
+1290680017 source:c:\users\1\desktop\20101116_133\femtocell\fbs.cpp
+	"stdhead.h"
+	"external_parameters.h"
+	"fbs.h"
+
+1290680017 source:c:\users\1\desktop\20101116_133\femtocell\main.cpp
+	"stdhead.h"
+	"fbs.h"
+	"external_parameters.h"
+
+1290680017 source:c:\users\1\desktop\20101116_133\femtocell\mbs.cpp
+	"stdhead.h"
+	"external_parameters.h"
+
+1290680017 source:c:\users\1\desktop\20101116_133\femtocell\ms_deployment.cpp
+	"stdhead.h"
+	"external_parameters.h"
+
+1290680017 source:c:\users\1\desktop\20101116_133\femtocell\pathloss.cpp
+	"stdhead.h"
+	"external_parameters.h"
+
+1290680017 source:c:\users\1\desktop\20101116_133\femtocell\sinr.cpp
+	"stdhead.h"
+	"external_parameters.h"
+
+1290680017 source:c:\users\1\desktop\20101116_133\femtocell\tools.cpp
+	"stdhead.h"
+
+1311062543 source:c:\users\1\desktop\20101116_133\femtocell\src\pathgenerator.cpp
+	"PathGenerator.h"
+	"external_parameters.h"
+	<math.h>
+	"stdhead.h"
+	<unistd.h>
+
+1311077162 c:\users\1\desktop\20101116_133\femtocell\include\pathgenerator.h
+	"stdhead.h"
+	<vector>
+	"LocationState.h"
+	<omp.h>
+
+1308820298 c:\users\1\desktop\20101116_133\femtocell\include\stdhead.h
+	"fbs.h"
+	<stdio.h>
+	<iostream>
+	<iomanip>
+	<fstream>
+	<math.h>
+	<time.h>
+	<stdlib.h>
+	<valarray>
+	"GenFingerprintBase.h"
+	"SimulatorParameter.h"
+
+1305719646 c:\users\1\desktop\20101116_133\femtocell\include\fbs.h
+
+1307019623 source:c:\users\1\desktop\20101116_133\femtocell\src\channel_allocation.cpp
+	"stdhead.h"
+	"channel_allocation.h"
+	"external_parameters.h"
+
+1290680017 c:\users\1\desktop\20101116_133\femtocell\include\channel_allocation.h
+
+1306856385 c:\users\1\desktop\20101116_133\femtocell\include\external_parameters.h
+	"stdhead.h"
+	"GenFingerprintBase.h"
+
+1297848701 source:c:\users\1\desktop\20101116_133\femtocell\src\class_oper.cpp
+	"stdhead.h"
+	"external_parameters.h"
+
+1310549614 source:c:\users\1\desktop\20101116_133\femtocell\src\fbs.cpp
+	"stdhead.h"
+	"external_parameters.h"
+	"fbs.h"
+	"GenFingerprintBase.h"
+	"LocationState.h"
+
+1307767305 source:c:\users\1\desktop\20101116_133\femtocell\src\main.cpp
+	"stdhead.h"
+	"fbs.h"
+	"external_parameters.h"
+	"PathGenerator.h"
+	<vector>
+	<fstream>
+	"GenMultiUser.h"
+	"MobileStation.h"
+	"Simulator.h"
+	<vector>
+
+1308820299 source:c:\users\1\desktop\20101116_133\femtocell\src\mbs.cpp
+	"stdhead.h"
+	"external_parameters.h"
+	"SimulatorParameter.h"
+	"GenFingerprintBase.h"
+
+1306315044 source:c:\users\1\desktop\20101116_133\femtocell\src\ms_deployment.cpp
+	"stdhead.h"
+	"external_parameters.h"
+
+1309593151 source:c:\users\1\desktop\20101116_133\femtocell\src\pathloss.cpp
+	"stdhead.h"
+	"external_parameters.h"
+
+1306322218 source:c:\users\1\desktop\20101116_133\femtocell\src\sinr.cpp
+	"stdhead.h"
+	"external_parameters.h"
+
+1297848701 source:c:\users\1\desktop\20101116_133\femtocell\src\tools.cpp
+	"stdhead.h"
+
+1306478923 source:c:\users\1\desktop\20101116_133\femtocell\src\locationstate.cpp
+	"LocationState.h"
+	<math.h>
+
+1304586124 c:\users\1\desktop\20101116_133\femtocell\include\locationstate.h
+	"stdhead.h"
+
+1311062372 source:c:\users\1\desktop\20101116_133\femtocell\src\genmultiuser.cpp
+	"GenMultiUser.h"
+	"external_parameters.h"
+	"stdhead.h"
+	"MacroBS.h"
+	<vector>
+
+1307051966 c:\users\1\desktop\20101116_133\femtocell\include\genmultiuser.h
+	"stdhead.h"
+	"PathGenerator.h"
+	<vector>
+
+1311709542 source:c:\users\1\desktop\20101116_133\femtocell\src\mobilestation.cpp
+	"MobileStation.h"
+	"stdhead.h"
+	"external_parameters.h"
+	"GenFingerprintBase.h"
+	"Record.h"
+	<omp.h>
+
+1311704615 c:\users\1\desktop\20101116_133\femtocell\include\mobilestation.h
+	<vector>
+	<algorithm>
+	"stdhead.h"
+	"LocationState.h"
+
+1312617267 source:c:\users\1\desktop\20101116_133\femtocell\src\simulator.cpp
+	"Simulator.h"
+	"external_parameters.h"
+	<stdlib.h>
+	<omp.h>
+	<stdio.h>
+	"SimulatorParameter.h"
+	"Record.h"
+
+1307052294 c:\users\1\desktop\20101116_133\femtocell\include\simulator.h
+	"GenMultiUser.h"
+	"MobileStation.h"
+
+1304846620 source:c:\users\1\desktop\20101116_133\femtocell\src\datachannelassignmentdl.cpp
+	"DataChannelAssignmentDL.h"
+
+1304844364 c:\users\1\desktop\20101116_133\femtocell\include\datachannelassignmentdl.h
+	"stdhead.h"
+
+1310864084 source:c:\users\1\desktop\20101116_133\femtocell\src\genfingerprintbase.cpp
+	"GenFingerprintBase.h"
+	"external_parameters.h"
+	<cmath>
+	<set>
+	<algorithm>
+	"Record.h"
+
+1309503077 c:\users\1\desktop\20101116_133\femtocell\include\genfingerprintbase.h
+	<algorithm>
+	<vector>
+	<set>
+	<cstdio>
+
+1305623489 c:\users\1\desktop\20101116_133\femtocell\src\genfingerprintbase.cpp
+	"GenFingerprintBase.h"
+
+1311710846 source:c:\users\1\desktop\20101116_133\femtocell\src\mswithlevelfp.cpp
+	"MobileStation.h"
+	"external_parameters.h"
+	"SimulatorParameter.h"
+	"Record.h"
+
+1306855495 source:c:\users\1\desktop\20101116_133\femtocell\src\csg.cpp
+	"CSG.h"
+
+1306855524 c:\users\1\desktop\20101116_133\femtocell\include\csg.h
+	"fbs.h"
+	"stdhead.h"
+	"PathGenerator.h"
+	"external_parameters.h"
+	<vector>
+
+1311732996 source:c:\users\1\desktop\20101116_133\femtocell\src\mswithvectorfp.cpp
+	"MobileStation.h"
+	"external_parameters.h"
+	"SimulatorParameter.h"
+	<set>
+	<algorithm>
+	<cmath>
+	"SimulatorParameter.h"
+	"Record.h"
+
+1306856931 c:\users\1\desktop\20101116_133\femtocell\include\macrobs.h
+
+1311575245 source:c:\users\1\desktop\20101116_133\femtocell\src\macrobs.cpp
+	"MacroBS.h"
+	"external_parameters.h"
+	"GenFingerprintBase.h"
+
+1312791300 c:\users\1\desktop\20101116_133\femtocell\include\simulatorparameter.h
+
+1310492919 source:c:\users\1\desktop\20101116_133\femtocell\src\record.cpp
+	"Record.h"
+	<algorithm>
+	<vector>
+	<string>
+	<iostream>
+	<fstream>
+	<time.h>
+
+1310491751 c:\users\1\desktop\20101116_133\femtocell\include\record.h
+	<vector>
+	<string>
+

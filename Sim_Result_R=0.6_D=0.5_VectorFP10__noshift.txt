@@ -1,0 +1,15 @@
+femtoNum:0.16605macroNum:0.82455
+
+Blocking Rate:0.0144
+
+OptimumTargetSelectionMissRate:0.0899296
+
+MeanNumInList:10
+
+ListMissRate:0.0288039
+
+##MobilityStateDetectionErrorRate:0
+
+##Difference## Mean :nan	Variance:nan
+
+Handover Times:177

@@ -1,0 +1,15 @@
+Femto Density =   0.9
+Femto Number =  2958
+Average SINR =  20.3265
+Average Marco BS SINR =  12.3506
+Average Femto BS SINR =  27.2468
+Femto Mode Ratio = 55.5993%
+1062  1224
+confidence interval =  nan
+20.3265
+Max FS transmit power = 20.3
+Frequency Reuse Factor = 1
+Femto Mode
+PUSC permutation for each sector
+Blocking Probability = 0
+Dropping Probability = 0
